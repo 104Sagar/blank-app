@@ -1676,7 +1676,7 @@ with tab_smart_calc:
   total_avg_rec_hc += poll_avg_hc
   total_avg_mh += poll_avg_mh
 
-  total_avg_hours = total_avg_rec_hc * 7.6
+  total_avg_hours = total_avg_rec_hc * 7.6 * 5
 
   st.markdown(
       f"""
@@ -1833,7 +1833,7 @@ with tab_smart_calc:
   total_target_rec_hc += poll_target_hc
   total_target_mh += poll_target_mh
 
-  total_target_hours = total_target_rec_hc * 7.6
+  total_target_hours = total_target_rec_hc * 7.6 * 5
 
   st.markdown(
       f"""
