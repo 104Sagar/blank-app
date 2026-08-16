@@ -58,8 +58,8 @@ st.markdown("""
         color: #1B4323 !important;
     }
 
-    /* Primary & Secondary Buttons */
-    .stButton > button {
+    /* Primary Buttons & Form Submit Buttons */
+    .stButton > button, .stFormSubmitButton > button {
         border-radius: 10px !important;
         background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%) !important;
         color: #FFFFFF !important;
@@ -68,9 +68,10 @@ st.markdown("""
         padding: 0.45rem 1.1rem !important;
         box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2) !important;
         transition: all 0.2s ease-in-out !important;
+        width: 100% !important;
     }
 
-    .stButton > button:hover {
+    .stButton > button:hover, .stFormSubmitButton > button:hover {
         transform: translateY(-1px) !important;
         box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3) !important;
     }
@@ -101,7 +102,7 @@ if 'skills_list' not in st.session_state:
         "Others"
     ]
 
-# Default Staff Data (Used only when app runs for the very first time)
+# Default Staff Data
 DEFAULT_STAFF_DB = [
     {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "notes": "Must work"},
     {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination"], "notes": "Must work"},
@@ -132,7 +133,7 @@ DEFAULT_STAFF_DB = [
     {"name": "AkashDeep", "category": "Urson", "skills": ["Others"], "notes": "Stem Supports"}
 ]
 
-# Helper Functions to Read/Write Persistence File
+# Read/Write Persistence File
 def load_staff_data():
     if os.path.exists(DATA_FILE):
         try:
@@ -146,11 +147,10 @@ def save_staff_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
-# Initialize Session State Database from Disk
+# Initialize Session State
 if 'staff_db' not in st.session_state:
     st.session_state.staff_db = load_staff_data()
 
-# Default Active Tasks Setup
 if 'active_tasks' not in st.session_state:
     st.session_state.active_tasks = {
         "Leading Hand": 2,
@@ -160,46 +160,48 @@ if 'active_tasks' not in st.session_state:
         "Others": 3
     }
 
-# Header
+# Title
 st.title("📋 Glasshouse 3 - Weekly Labor Booking Planner")
 st.markdown("Dynamic multi-skill planner with GG, TOTC, and Urson priority allocation.")
 st.markdown("---")
 
-# --- SIDEBAR: STAFF & SKILL CONTROLS ---
+# --- SIDEBAR CONTROLS ---
 st.sidebar.header("⚙️ Roster & Staff Controls")
 
-# Add New Staff
+# 1. Add New Staff (Form)
 with st.sidebar.expander("➕ Add New Staff Member"):
-    new_name = st.text_input("Name")
-    new_cat = st.selectbox("Category", ["GG", "TOTC", "Urson", "Leading Hand"])
-    
-    opts = st.session_state.skills_list
-    skill1 = st.selectbox("Primary Skill", opts)
-    skill2 = st.selectbox("Secondary Skill (Optional)", ["None"] + opts)
-    skill3 = st.selectbox("Tertiary Skill (Optional)", ["None"] + opts)
-    
-    new_note = st.text_input("Notes (e.g. Mon-Wed only)")
-    
-    if st.button("Add Staff"):
-        if new_name.strip():
-            skills_arr = [skill1]
-            if skill2 != "None": skills_arr.append(skill2)
-            if skill3 != "None": skills_arr.append(skill3)
-            
-            st.session_state.staff_db.append({
-                "name": new_name.strip(), 
-                "category": new_cat, 
-                "skills": skills_arr, 
-                "notes": new_note
-            })
-            save_staff_data(st.session_state.staff_db)
-            st.sidebar.success(f"Added {new_name} and saved permanently!")
-            st.rerun()
+    with st.form("add_staff_form", clear_on_submit=True):
+        new_name = st.text_input("Name")
+        new_cat = st.selectbox("Category", ["GG", "TOTC", "Urson", "Leading Hand"])
+        
+        opts = st.session_state.skills_list
+        skill1 = st.selectbox("Primary Skill", opts)
+        skill2 = st.selectbox("Secondary Skill (Optional)", ["None"] + opts)
+        skill3 = st.selectbox("Tertiary Skill (Optional)", ["None"] + opts)
+        
+        new_note = st.text_input("Notes (e.g. Mon-Wed only)")
+        
+        submit_add = st.form_submit_button("Add Staff")
+        if submit_add:
+            if new_name.strip():
+                skills_arr = [skill1]
+                if skill2 != "None": skills_arr.append(skill2)
+                if skill3 != "None": skills_arr.append(skill3)
+                
+                st.session_state.staff_db.append({
+                    "name": new_name.strip(), 
+                    "category": new_cat, 
+                    "skills": skills_arr, 
+                    "notes": new_note
+                })
+                save_staff_data(st.session_state.staff_db)
+                st.sidebar.success(f"Added {new_name} and saved permanently!")
+                st.rerun()
 
-# Update / Train Existing Staff Skills
-with st.sidebar.expander("🎓 Update / Train Staff Skills"):
+# 2. Update / Train Existing Staff Skills (Form)
+with st.sidebar.expander("🎓 Update / Train Staff Skills", expanded=True):
     staff_names = [s["name"] for s in st.session_state.staff_db]
-    selected_member_name = st.selectbox("Select Team Member", options=[""] + staff_names)
+    selected_member_name = st.selectbox("Select Team Member", options=[""] + staff_names, key="select_member_to_update")
     
     if selected_member_name:
         person = next((s for s in st.session_state.staff_db if s["name"] == selected_member_name), None)
@@ -210,20 +212,24 @@ with st.sidebar.expander("🎓 Update / Train Staff Skills"):
             t_skill = curr_skills[2] if len(curr_skills) > 2 else "None"
             
             opts = st.session_state.skills_list
-            up_skill1 = st.selectbox("Primary Skill", opts, index=opts.index(p_skill) if p_skill in opts else 0, key="up_s1")
-            up_skill2 = st.selectbox("Secondary Skill", ["None"] + opts, index=(["None"] + opts).index(s_skill) if s_skill in (["None"] + opts) else 0, key="up_s2")
-            up_skill3 = st.selectbox("Tertiary Skill", ["None"] + opts, index=(["None"] + opts).index(t_skill) if t_skill in (["None"] + opts) else 0, key="up_s3")
             
-            if st.button("Save Trained Skills"):
-                new_s_arr = [up_skill1]
-                if up_skill2 != "None": new_s_arr.append(up_skill2)
-                if up_skill3 != "None": new_s_arr.append(up_skill3)
-                person["skills"] = new_s_arr
-                save_staff_data(st.session_state.staff_db)
-                st.sidebar.success(f"Updated skills for {selected_member_name}!")
-                st.rerun()
+            with st.form(key=f"update_skills_form_{selected_member_name}"):
+                up_skill1 = st.selectbox("Primary Skill", opts, index=opts.index(p_skill) if p_skill in opts else 0)
+                up_skill2 = st.selectbox("Secondary Skill", ["None"] + opts, index=(["None"] + opts).index(s_skill) if s_skill in (["None"] + opts) else 0)
+                up_skill3 = st.selectbox("Tertiary Skill", ["None"] + opts, index=(["None"] + opts).index(t_skill) if t_skill in (["None"] + opts) else 0)
+                
+                submit_update = st.form_submit_button("Save Trained Skills")
+                if submit_update:
+                    new_s_arr = [up_skill1]
+                    if up_skill2 != "None": new_s_arr.append(up_skill2)
+                    if up_skill3 != "None": new_s_arr.append(up_skill3)
+                    
+                    person["skills"] = new_s_arr
+                    save_staff_data(st.session_state.staff_db)
+                    st.sidebar.success(f"Updated skills for {selected_member_name}!")
+                    st.rerun()
 
-# Master Skills List
+# 3. Master Skills List
 with st.sidebar.expander("🏷️ Master Skills List"):
     st.markdown("**Current Skills:**")
     for s in st.session_state.skills_list:
@@ -236,7 +242,7 @@ with st.sidebar.expander("🏷️ Master Skills List"):
             st.sidebar.success(f"Added Skill: {add_skill_direct.strip()}")
             st.rerun()
 
-# Permanent Remove Staff
+# 4. Remove Staff
 with st.sidebar.expander("🗑️ Permanent Remove Staff"):
     staff_names = [s["name"] for s in st.session_state.staff_db]
     to_remove = st.selectbox("Select Staff to Remove", options=[""] + staff_names)
@@ -247,7 +253,7 @@ with st.sidebar.expander("🗑️ Permanent Remove Staff"):
             st.sidebar.warning(f"Removed {to_remove}")
             st.rerun()
 
-# Backup & Restore Database
+# 5. Backup & Restore
 with st.sidebar.expander("💾 Backup / Export Data"):
     json_data = json.dumps(st.session_state.staff_db, indent=4)
     st.download_button(
