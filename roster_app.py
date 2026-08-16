@@ -1,36 +1,95 @@
 import streamlit as st
 import pandas as pd
+import json
+import os
 
 # Page setup
 st.set_page_config(page_title="GG Labor Roster Planner", page_icon="📋", layout="wide")
 
-# Custom soothing faint-green theme styling
+# File path for persistent database storage
+DATA_FILE = "staff_db.json"
+
+# --- PREMIUM MODERN UI CSS STYLING ---
 st.markdown("""
     <style>
-    /* Main Background - Faint Soothing Green */
+    /* Main App Background with Soft Botanical Gradient */
     .stApp {
-        background-color: #F2F7F4 !important;
+        background: linear-gradient(135deg, #E6EFE9 0%, #F4F8F5 40%, #E2ECE5 100%) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
-    /* Sidebar Background - Soft Mint Accent */
+    /* Sidebar Styling with Soft Glass Effect */
     div[data-testid="stSidebar"] {
-        background-color: #E3EFE8 !important;
+        background: linear-gradient(180deg, #DCE7DF 0%, #E8F0EA 100%) !important;
+        border-right: 1px solid rgba(46, 125, 50, 0.12) !important;
     }
-    
-    /* Input Boxes and Cards */
-    div[data-baseweb="input"], div[data-baseweb="select"] {
+
+    /* Card Containers for Main Columns */
+    div[data-testid="stColumn"] {
+        background: rgba(255, 255, 255, 0.82) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 16px !important;
+        padding: 1.25rem !important;
+        box-shadow: 0 8px 24px rgba(27, 47, 33, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.9) !important;
+    }
+
+    /* Soft Rounded Expanders */
+    div[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
-        border-radius: 6px;
+        border-radius: 12px !important;
+        border: 1px solid #D5E3D8 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    /* Modern Rounded Form Inputs */
+    div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="base-input"] {
+        border-radius: 10px !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #C5DACB !important;
     }
     
-    /* Clean Text Containers */
-    .stMarkdown, .stText {
-        color: #1A2E22;
+    /* Multiselect Tags */
+    span[data-baseweb="tag"] {
+        background-color: #E2EFE5 !important;
+        border-radius: 6px !important;
+        color: #1B4323 !important;
+    }
+
+    /* Primary & Secondary Buttons */
+    .stButton > button {
+        border-radius: 10px !important;
+        background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        border: none !important;
+        padding: 0.45rem 1.1rem !important;
+        box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3) !important;
+    }
+
+    /* Text Formatting */
+    h1, h2, h3, .stMarkdown {
+        color: #1B382B !important;
+    }
+
+    /* Code Output Box Styling */
+    div[data-testid="stCodeBlock"] {
+        border-radius: 12px !important;
+        border: 1px solid #D1E0D5 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- INITIALIZE MASTER SKILLS LIST ---
+# --- MASTER SKILLS LIST ---
 if 'skills_list' not in st.session_state:
     st.session_state.skills_list = [
         "Clip/Shoot + Pollination",
@@ -42,44 +101,54 @@ if 'skills_list' not in st.session_state:
         "Others"
     ]
 
-# --- INITIALIZE MULTI-SKILL STAFF DATABASE ---
+# Default Staff Data (Used only when app runs for the very first time)
+DEFAULT_STAFF_DB = [
+    {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "notes": "Must work"},
+    {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination"], "notes": "Must work"},
+    {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning"], "notes": "Must work"},
+    {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand"], "notes": "Supervising"},
+    {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others"], "notes": "Sulphur Pots"},
+    {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Truss Support", "Lowering"], "notes": "Min 30h"},
+    {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": "Min 30h"},
+    {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Pruning"], "notes": "Min 30h"},
+    {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering"], "notes": "Min 30h"},
+    {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support"], "notes": "Min 30h"},
+    {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing"], "notes": "Min 30h"},
+    {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": ""},
+    {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Truss Support"], "notes": ""},
+    {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
+    {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Lowering"], "notes": ""},
+    {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
+    {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Others"], "notes": ""},
+    {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
+    {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
+    {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": "Mon-Wed Only"},
+    {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning"], "notes": ""},
+    {"name": "Cassy", "category": "Urson", "skills": ["De-leafing"], "notes": ""},
+    {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support"], "notes": ""},
+    {"name": "Lin", "category": "Urson", "skills": ["Truss Support", "Lowering"], "notes": ""},
+    {"name": "Moka", "category": "Urson", "skills": ["Truss Support"], "notes": ""},
+    {"name": "Panyawat", "category": "Urson", "skills": ["Others"], "notes": "Cleaning"},
+    {"name": "AkashDeep", "category": "Urson", "skills": ["Others"], "notes": "Stem Supports"}
+]
+
+# Helper Functions to Read/Write Persistence File
+def load_staff_data():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            return DEFAULT_STAFF_DB
+    return DEFAULT_STAFF_DB
+
+def save_staff_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+# Initialize Session State Database from Disk
 if 'staff_db' not in st.session_state:
-    st.session_state.staff_db = [
-        # GG Members
-        {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "notes": "Must work"},
-        {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination"], "notes": "Must work"},
-        {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning"], "notes": "Must work"},
-        
-        # Leading Hands
-        {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand"], "notes": "Supervising"},
-        {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others"], "notes": "Sulphur Pots"},
-        
-        # TOTC Members
-        {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Truss Support", "Lowering"], "notes": "Min 30h"},
-        {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": "Min 30h"},
-        {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Pruning"], "notes": "Min 30h"},
-        {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering"], "notes": "Min 30h"},
-        {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support"], "notes": "Min 30h"},
-        {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing"], "notes": "Min 30h"},
-        
-        # Ursons
-        {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": ""},
-        {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Truss Support"], "notes": ""},
-        {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
-        {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Lowering"], "notes": ""},
-        {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
-        {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Others"], "notes": ""},
-        {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
-        {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
-        {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": "Mon-Wed Only"},
-        {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning"], "notes": ""},
-        {"name": "Cassy", "category": "Urson", "skills": ["De-leafing"], "notes": ""},
-        {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support"], "notes": ""},
-        {"name": "Lin", "category": "Urson", "skills": ["Truss Support", "Lowering"], "notes": ""},
-        {"name": "Moka", "category": "Urson", "skills": ["Truss Support"], "notes": ""},
-        {"name": "Panyawat", "category": "Urson", "skills": ["Others"], "notes": "Cleaning"},
-        {"name": "AkashDeep", "category": "Urson", "skills": ["Others"], "notes": "Stem Supports"}
-    ]
+    st.session_state.staff_db = load_staff_data()
 
 # Default Active Tasks Setup
 if 'active_tasks' not in st.session_state:
@@ -123,7 +192,8 @@ with st.sidebar.expander("➕ Add New Staff Member"):
                 "skills": skills_arr, 
                 "notes": new_note
             })
-            st.sidebar.success(f"Added {new_name}")
+            save_staff_data(st.session_state.staff_db)
+            st.sidebar.success(f"Added {new_name} and saved permanently!")
             st.rerun()
 
 # Update / Train Existing Staff Skills
@@ -132,7 +202,6 @@ with st.sidebar.expander("🎓 Update / Train Staff Skills"):
     selected_member_name = st.selectbox("Select Team Member", options=[""] + staff_names)
     
     if selected_member_name:
-        # Find selected person
         person = next((s for s in st.session_state.staff_db if s["name"] == selected_member_name), None)
         if person:
             curr_skills = person.get("skills", [])
@@ -150,7 +219,8 @@ with st.sidebar.expander("🎓 Update / Train Staff Skills"):
                 if up_skill2 != "None": new_s_arr.append(up_skill2)
                 if up_skill3 != "None": new_s_arr.append(up_skill3)
                 person["skills"] = new_s_arr
-                st.sidebar.success(f"Updated skills for {selected_member_name}")
+                save_staff_data(st.session_state.staff_db)
+                st.sidebar.success(f"Updated skills for {selected_member_name}!")
                 st.rerun()
 
 # Master Skills List
@@ -173,8 +243,19 @@ with st.sidebar.expander("🗑️ Permanent Remove Staff"):
     if st.button("Delete Permanently"):
         if to_remove:
             st.session_state.staff_db = [s for s in st.session_state.staff_db if s["name"] != to_remove]
+            save_staff_data(st.session_state.staff_db)
             st.sidebar.warning(f"Removed {to_remove}")
             st.rerun()
+
+# Backup & Restore Database
+with st.sidebar.expander("💾 Backup / Export Data"):
+    json_data = json.dumps(st.session_state.staff_db, indent=4)
+    st.download_button(
+        label="📥 Download Staff DB Backup",
+        data=json_data,
+        file_name="staff_db_backup.json",
+        mime="application/json"
+    )
 
 st.sidebar.markdown("---")
 
@@ -189,7 +270,6 @@ with col_left:
 with col_right:
     st.subheader("2. Weekly Task Setup & Headcounts")
     
-    # Task Addition Box
     with st.expander("➕ Add Task Heading for Next Week", expanded=False):
         task_add_options = st.session_state.skills_list + ["➕ Other Custom Task"]
         chosen_task_opt = st.selectbox("Select Task Heading", task_add_options)
@@ -241,7 +321,6 @@ st.markdown("---")
 # --- MULTI-SKILL SMART ALLOCATION ENGINE ---
 available_pool = [s for s in st.session_state.staff_db if s["name"] not in absent_staff]
 
-# Sorting priority: GG (1) > TOTC/Leading Hand (2) > Urson (3)
 priority_map = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
 available_pool.sort(key=lambda x: priority_map.get(x["category"], 4))
 
@@ -252,14 +331,12 @@ for person in available_pool:
     assigned = False
     person_skills = person.get("skills", [person.get("primary_task", "Others")])
     
-    # Check Primary -> Secondary -> Tertiary skill match in background
     for sk in person_skills:
         if sk in task_requirements and len(allocated_roster[sk]) < task_requirements[sk]:
             allocated_roster[sk].append(person)
             assigned = True
             break
             
-    # Fallback for GG / TOTC staff
     if not assigned and person["category"] in ["GG", "TOTC"]:
         for task, req_count in task_requirements.items():
             if task != "Leading Hand" and len(allocated_roster[task]) < req_count:
@@ -282,7 +359,6 @@ with col1:
         st.markdown(f"**{task} (Total: {len(members)} / {task_requirements[task]})**")
         for m in members:
             note_str = f" — *{m['notes']}*" if m['notes'] else ""
-            # Clean display: no skill list clutter on main screen
             st.write(f"- **{m['name']}** [{m['category']}]{note_str}")
         st.markdown("---")
 
