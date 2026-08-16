@@ -511,6 +511,32 @@ if "active_tasks" not in st.session_state:
       "Truss Pruning": 3,
   }
 
+# Initialize Calculator Session State Defaults
+if "calc_rows" not in st.session_state:
+  st.session_state.calc_rows = 260
+if "calc_plants_per_row" not in st.session_state:
+  st.session_state.calc_plants_per_row = 480
+if "calc_density_m2" not in st.session_state:
+  st.session_state.calc_density_m2 = 2.5
+
+
+def update_from_row_or_plants():
+  area_m2 = st.session_state.calc_area_ha * 10000.0
+  total_p = st.session_state.calc_rows * st.session_state.calc_plants_per_row
+  st.session_state.calc_density_m2 = (
+      round(total_p / area_m2, 2) if area_m2 > 0 else 0.0
+  )
+
+
+def update_from_density_m2():
+  area_m2 = st.session_state.calc_area_ha * 10000.0
+  total_p = round(st.session_state.calc_density_m2 * area_m2)
+  if st.session_state.calc_rows > 0:
+    st.session_state.calc_plants_per_row = max(
+        1, round(total_p / st.session_state.calc_rows)
+    )
+
+
 # Title
 st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
@@ -1138,18 +1164,38 @@ with tab_calc:
         min_value=0.1,
         value=5.0,
         step=0.5,
+        key="calc_area_ha",
+        on_change=update_from_row_or_plants,
     )
     total_area_m2 = total_area_ha * 10000.0
 
   with c_in2:
     num_rows = st.number_input(
-        "Number of Rows", min_value=1, value=260, step=5
+        "Number of Rows",
+        min_value=1,
+        value=st.session_state.calc_rows,
+        step=5,
+        key="calc_rows",
+        on_change=update_from_row_or_plants,
     )
     plants_per_row = st.number_input(
-        "Plant Density per Row", min_value=1, value=480, step=10
+        "Plant Density per Row (Editable)",
+        min_value=1,
+        value=st.session_state.calc_plants_per_row,
+        step=10,
+        key="calc_plants_per_row",
+        on_change=update_from_row_or_plants,
     )
 
   with c_in3:
+    plant_density_m2 = st.number_input(
+        "Plant Density per m² (Editable)",
+        min_value=0.1,
+        value=float(st.session_state.calc_density_m2),
+        step=0.1,
+        key="calc_density_m2",
+        on_change=update_from_density_m2,
+    )
     calc_task = st.selectbox(
         "Select Task for Calculation",
         options=st.session_state.skills_list,
@@ -1164,9 +1210,9 @@ with tab_calc:
         key="calc_target_kpi_input",
     )
 
-  # Calculations
+  # Final Calculations
   total_plants = num_rows * plants_per_row
-  plant_density_m2 = (
+  final_density_m2 = (
       total_plants / total_area_m2 if total_area_m2 > 0 else 0.0
   )
   estimated_total_hours = (
@@ -1177,7 +1223,7 @@ with tab_calc:
   st.markdown("---")
   res1, res2, res3, res4 = st.columns(4)
   res1.metric("Total Plant / Stem Count", f"{total_plants:,.0f}")
-  res2.metric("Plant Density", f"{plant_density_m2:.2f} plants/m²")
+  res2.metric("Plant Density", f"{final_density_m2:.2f} plants/m²")
   res3.metric(
       "Total Estimated Labor Hours", f"{estimated_total_hours:,.1f} hrs"
   )
