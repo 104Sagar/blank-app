@@ -378,16 +378,16 @@ with tab_planner:
 
     st.markdown("---")
 
-    # --- ALLOCATION ENGINE ---
+    # --- ALLOCATION ENGINE WITH MATCH TRACKING ---
     available_pool = [s for s in st.session_state.staff_db if s["name"] not in absent_staff]
     cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
 
     allocated_roster = {task: [] for task in task_requirements}
 
-    def allocate_by_tier(tier_index, label_name):
+    def allocate_by_tier(tier_index, match_label):
         for task_name, req_count in task_requirements.items():
             while len(allocated_roster[task_name]) < req_count:
-                assigned_flat = [m for mems in allocated_roster.values() for m in mems]
+                assigned_flat = [m["person"] for mems in allocated_roster.values() for m in mems]
                 unassigned_pool = [p for p in available_pool if p not in assigned_flat]
                 
                 candidates_for_task = []
@@ -412,19 +412,22 @@ with tab_planner:
                 
                 candidates_for_task.sort(key=lambda x: (x["cat_rank"], -x["kpi"], x["quality"]))
                 best_cand = candidates_for_task[0]
-                allocated_roster[task_name].append(best_cand["person"])
+                allocated_roster[task_name].append({
+                    "person": best_cand["person"],
+                    "match_type": match_label
+                })
 
-    # PASS 1: Primary Skills
+    # PASS 1: Primary Skills (Green)
     allocate_by_tier(0, "Primary")
-    # PASS 2: Secondary Skills
+    # PASS 2: Secondary Skills (Yellow)
     allocate_by_tier(1, "Secondary")
-    # PASS 3: Tertiary Skills
+    # PASS 3: Tertiary Skills (Black)
     allocate_by_tier(2, "Tertiary")
 
-    # PASS 4: Fallback fill for remaining unfilled spots
+    # PASS 4: Fallback fill for remaining unfilled spots (Red / No Match)
     for task_name, req_count in task_requirements.items():
         while len(allocated_roster[task_name]) < req_count:
-            assigned_flat = [m for mems in allocated_roster.values() for m in mems]
+            assigned_flat = [m["person"] for mems in allocated_roster.values() for m in mems]
             unassigned_pool = [p for p in available_pool if p not in assigned_flat]
             
             if not unassigned_pool:
@@ -432,25 +435,47 @@ with tab_planner:
             
             unassigned_pool.sort(key=lambda x: (cat_priority.get(x["category"], 4)))
             fallback_person = unassigned_pool[0]
-            allocated_roster[task_name].append(fallback_person)
+            allocated_roster[task_name].append({
+                "person": fallback_person,
+                "match_type": "No Match"
+            })
 
-    assigned_staff_flat = [m for mems in allocated_roster.values() for m in mems]
+    assigned_staff_flat = [m["person"] for mems in allocated_roster.values() for m in mems]
     unassigned_staff = [p for p in available_pool if p not in assigned_staff_flat]
 
-    # --- DISPLAY RESULTS & TWO COPY-PASTE LISTS ---
-    st.subheader(f"📊 Labor Allocation Plan (Total Requested: {total_requested} Staff)")
+    # --- LEGEND DISPLAY ---
+    st.markdown("**Skill Match Color Legend:** "
+                "🟢 <span style='color:green; font-weight:600;'>Primary Skill</span> &nbsp;&nbsp;|&nbsp;&nbsp; "
+                "🟡 <span style='color:#b8860b; font-weight:600;'>Secondary Skill</span> &nbsp;&nbsp;|&nbsp;&nbsp; "
+                "⚫ <span style='color:black; font-weight:600;'>Tertiary Skill</span> &nbsp;&nbsp;|&nbsp;&nbsp; "
+                "🔴 <span style='color:red; font-weight:600;'>No Matching Skillset</span>", unsafe_allow_html=True)
+    st.markdown("---")
 
+    # --- DISPLAY RESULTS & TWO COPY-PASTE LISTS ---
     col1, col2 = st.columns([1, 1.2])
 
     with col1:
-        st.markdown("### 📋 Live Roster Breakdown")
-        for task, members in allocated_roster.items():
+        st.markdown(f"### 📊 Labor Allocation Plan (Total Requested: {total_requested} Staff)")
+        for task, entries in allocated_roster.items():
             req_c = task_requirements[task]
-            st.markdown(f"**{task} ({len(members)} / {req_c})**")
-            for m in members:
+            st.markdown(f"**{task} ({len(entries)} / {req_c})**")
+            for item in entries:
+                m = item["person"]
+                m_type = item["match_type"]
+                
+                # Assign bullet/color indicators for UI display
+                if m_type == "Primary":
+                    icon_badge = "🟢 `[Primary]`"
+                elif m_type == "Secondary":
+                    icon_badge = "🟡 `[Secondary]`"
+                elif m_type == "Tertiary":
+                    icon_badge = "⚫ `[Tertiary]`"
+                else:
+                    icon_badge = "🔴 `[No Match]`"
+                
                 t_note = m.get('task_performance', {}).get(task, {}).get('notes', '')
                 note_str = f" (*{t_note}*)" if t_note else ""
-                st.write(f"- **{m['name']}** [{m['category']}]{note_str}")
+                st.write(f"- **{m['name']}** [{m['category']}] — {icon_badge}{note_str}")
             st.markdown("---")
 
     with col2:
@@ -461,12 +486,14 @@ with tab_planner:
         task_text_output += f"Total Staff Required: {total_requested}\n"
         task_text_output += "-----------------------------------\n\n"
         
-        for task, members in allocated_roster.items():
-            task_text_output += f"*{task.upper()} ({len(members)}/{task_requirements[task]})*\n"
-            for idx, m in enumerate(members, 1):
+        for task, entries in allocated_roster.items():
+            task_text_output += f"*{task.upper()} ({len(entries)}/{task_requirements[task]})*\n"
+            for idx, item in enumerate(entries, 1):
+                m = item["person"]
+                m_type = item["match_type"]
                 t_note = m.get('task_performance', {}).get(task, {}).get('notes', '')
                 note = f" - {t_note}" if t_note else ""
-                task_text_output += f"{idx}. {m['name']} ({m['category']}){note}\n"
+                task_text_output += f"{idx}. {m['name']} ({m['category']}) [{m_type}]{note}\n"
             task_text_output += "\n"
             
         if unassigned_staff:
@@ -480,13 +507,14 @@ with tab_planner:
         # BOX 2: LIST BY EMPLOYEE CATEGORY
         category_map = {"GG": [], "Leading Hand": [], "TOTC": [], "Urson": []}
         
-        for task, members in allocated_roster.items():
-            for m in members:
+        for task, entries in allocated_roster.items():
+            for item in entries:
+                m = item["person"]
                 cat = m["category"]
                 if cat not in category_map:
                     category_map[cat] = []
                 t_note = m.get('task_performance', {}).get(task, {}).get('notes', '')
-                category_map[cat].append({"name": m["name"], "task": task, "notes": t_note})
+                category_map[cat].append({"name": m["name"], "task": task, "match": item["match_type"], "notes": t_note})
 
         cat_text_output = f"GH3 - WEEKLY LABOR BOOKING REQUEST (BY CATEGORY)\n"
         cat_text_output += f"Total Staff Required: {total_requested}\n"
@@ -499,7 +527,7 @@ with tab_planner:
                 cat_text_output += f"*{cat.upper()} ({len(cat_members)})*\n"
                 for idx, m in enumerate(cat_members, 1):
                     note = f" - {m['notes']}" if m['notes'] else ""
-                    cat_text_output += f"{idx}. {m['name']} - {m['task']}{note}\n"
+                    cat_text_output += f"{idx}. {m['name']} - {m['task']} [{m['match']}]{note}\n"
                 cat_text_output += "\n"
 
         if unassigned_staff:
