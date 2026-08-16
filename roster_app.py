@@ -189,7 +189,11 @@ st.title("📋 Glasshouse 3 - Weekly Labor Booking Planner")
 st.markdown("---")
 
 # --- NAVIGATION TABS ---
-tab_planner, tab_kpi = st.tabs(["📋 Roster & Copy Lists", "⭐ Weekly Task-Specific KPI & Quality Tracker"])
+tab_planner, tab_kpi, tab_progress = st.tabs([
+    "📋 Roster & Copy Lists", 
+    "⭐ Weekly Task-Specific KPI & Quality Tracker", 
+    "📈 Staff Progress & Skills"
+])
 
 # ==========================================
 # TAB 1: ROSTER PLANNER & COPY LISTS
@@ -407,10 +411,6 @@ with tab_planner:
         for task_name, req_count in task_requirements.items():
             while len(allocated_roster[task_name]) < req_count and unassigned_staff:
                 leftover_person = unassigned_staff.pop(0)
-                # Avoid assigning regular staff as Leading Hand in fallback unless necessary
-                if task_name == "Leading Hand" and leftover_person["category"] != "Leading Hand":
-                    # Try to find another task first if possible, or append anyway if no other choice
-                    pass
                 allocated_roster[task_name].append(leftover_person)
 
     # --- DISPLAY RESULTS & TWO COPY-PASTE LISTS ---
@@ -544,3 +544,40 @@ with tab_kpi:
                 save_staff_data(st.session_state.staff_db)
                 st.success(f"Successfully updated KPI and Quality ratings for {selected_task_to_eval}!")
                 st.rerun()
+
+
+# ==========================================
+# TAB 3: STAFF PROGRESS & SKILLS DIRECTORY
+# ==========================================
+with tab_progress:
+    st.subheader("📈 Staff Skills Directory & Progress Overview")
+    st.markdown("Comprehensive view of all team members, their certified skills, and tracked performance records.")
+    
+    search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
+    
+    for person in st.session_state.staff_db:
+        if not search_query or search_query.lower() in person["name"].lower():
+            with st.expander(f"👤 **{person['name']}** — Category: `{person['category']}`"):
+                col_p1, col_p2 = st.columns([1, 1.5])
+                
+                with col_p1:
+                    st.markdown("##### 🛠️ Certified Skills")
+                    skills = person.get("skills", [])
+                    if skills:
+                        for sk in skills:
+                            st.markdown(f"- ✅ {sk}")
+                    else:
+                        st.markdown("_No skills assigned_")
+                
+                with col_p2:
+                    st.markdown("##### 📊 Task Progress & KPI Records")
+                    task_perf = person.get("task_performance", {})
+                    if task_perf:
+                        for t_name, metrics in task_perf.items():
+                            kpi = metrics.get("kpi", 100.0)
+                            qual = metrics.get("quality", "👍")
+                            notes = metrics.get("notes", "")
+                            note_text = f" | _Note: {notes}_" if notes else ""
+                            st.markdown(f"- **{t_name}**: KPI **{kpi}** | Quality: {qual}{note_text}")
+                    else:
+                        st.markdown("_No KPI records logged yet_")
