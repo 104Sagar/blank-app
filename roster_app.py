@@ -550,7 +550,7 @@ if "calc_plants_per_row" not in st.session_state:
 st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
 
-# --- UPDATED TAB ORDER PER REQUEST ---
+# --- TAB ORDER PER REQUEST ---
 (
     tab_planner,
     tab_old_calc,
@@ -1018,7 +1018,7 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (With Interactive Average KPI Inputs)
 # ==========================================
 with tab_old_calc:
   st.subheader(
@@ -1026,7 +1026,8 @@ with tab_old_calc:
   )
   st.markdown(
       "Generates two separate, complete Task Breakdowns & Overtime Status views:"
-      " one using your **Target KPIs** and one using your **Average KPIs**."
+      " one using your **Target KPIs** and one using your interactive **Average"
+      " KPIs**."
   )
   st.markdown("---")
 
@@ -1056,23 +1057,26 @@ with tab_old_calc:
 
   tasks_comparison_data = []
 
-  # We need effective_kpis_from smart calc or default
-  effective_kpis = st.session_state.get("effective_kpis_for_advanced", {})
-
   for task_name, staff_qty in st.session_state.active_tasks.items():
     if task_name in ["Leading Hand", "Others"]:
       continue
 
     target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
-    avg_kpi = float(effective_kpis.get(task_name, target_kpi))
+
+    # Compute default actual average KPI from Tab 2 staff records for this task
+    kpis_logged = []
+    for person in st.session_state.staff_db:
+      t_perf = person.get("task_performance", {})
+      if task_name in t_perf:
+        kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
+    default_logged_avg = (
+        sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
+    )
 
     t_plants = shared_rows * shared_density
 
     mh_target = t_plants / target_kpi if target_kpi > 0 else 0
     dur_target = mh_target / staff_qty if staff_qty > 0 else 0
-
-    mh_avg = t_plants / avg_kpi if avg_kpi > 0 else 0
-    dur_avg = mh_avg / staff_qty if staff_qty > 0 else 0
 
     tasks_comparison_data.append({
         "name": task_name,
@@ -1083,13 +1087,11 @@ with tab_old_calc:
         "target_kpi": target_kpi,
         "mh_target": mh_target,
         "dur_target": dur_target,
-        "avg_kpi": avg_kpi,
-        "mh_avg": mh_avg,
-        "dur_avg": dur_avg,
+        "default_avg_kpi": default_logged_avg,
     })
 
+  # Aggregates for Target
   crop_mh_target = sum(t["mh_target"] for t in tasks_comparison_data)
-  crop_mh_avg = sum(t["mh_avg"] for t in tasks_comparison_data)
 
   unique_staff_total = sum(
       t["staff"]
@@ -1113,32 +1115,6 @@ with tab_old_calc:
       grand_mh_target / unique_staff_total if unique_staff_total > 0 else 0.0
   )
 
-  grand_mh_avg = crop_mh_avg + pollination_loss_total
-  avg_hrs_person_avg = (
-      grand_mh_avg / unique_staff_total if unique_staff_total > 0 else 0.0
-  )
-
-  st.subheader("📊 Live Weekly Summary Comparison")
-  col_sum1, col_sum2 = st.columns(2)
-
-  with col_sum1:
-    st.markdown("### 🎯 Target KPI Summary")
-    st.metric(
-        "Total Combined Workload (Target)", f"{grand_mh_target:.1f} Man-Hours"
-    )
-    st.metric(
-        "Avg Workload per Person (Target)", f"{avg_hrs_person_target:.1f} Hours"
-    )
-
-  with col_sum2:
-    st.markdown("### ⭐ Average KPI Summary")
-    st.metric(
-        "Total Combined Workload (Average)", f"{grand_mh_avg:.1f} Man-Hours"
-    )
-    st.metric(
-        "Avg Workload per Person (Average)", f"{avg_hrs_person_avg:.1f} Hours"
-    )
-
   st.markdown("---")
   st.subheader(
       "📝 Detailed Task Breakdowns & Overtime Status: Target KPI vs. Average"
@@ -1157,21 +1133,17 @@ with tab_old_calc:
 
     if is_clip_shoot:
       limit_ref = max_allowed_hours - pollination_loss_person
-      is_ot_target = task["dur_target"] > limit_ref
-      is_ot_avg = task["dur_avg"] > limit_ref
       limit_text = f"Remaining Limit minus Pollination ({limit_ref:.1f} Hrs Max)"
     elif is_shared:
       limit_ref = 20.0
-      is_ot_target = task["dur_target"] > limit_ref
-      is_ot_avg = task["dur_avg"] > limit_ref
       limit_text = "Shared Shift Limit (20.0 Hrs Max)"
     else:
       limit_ref = max_allowed_hours
-      is_ot_target = task["dur_target"] > limit_ref
-      is_ot_avg = task["dur_avg"] > limit_ref
       limit_text = f"Remaining Days Limit ({limit_ref:.1f} Hrs Max)"
 
+    # Target KPI View
     with tc1:
+      is_ot_target = task["dur_target"] > limit_ref
       card_cls = "task-card-alert" if is_ot_target else "task-card-normal"
       if is_ot_target:
         status_target = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds Limit ({task['dur_target']:.1f} / {limit_ref:.1f} Hours)</span>"
@@ -1194,21 +1166,42 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
+    # Average KPI View with interactive input inside box
     with tc2:
+      st.markdown(
+          "<p style='margin-bottom:2px; font-weight:bold; color:#1B4332;"
+          " font-size:1.05rem;'>⭐ Average KPI View</p>",
+          unsafe_allow_html=True,
+      )
+      avg_kpi_user = st.number_input(
+          f"Average KPI for {task['name']}",
+          min_value=1.0,
+          value=float(
+              st.session_state.get(
+                  f"adv_avg_kpi_input_{task['name']}", task["default_avg_kpi"]
+              )
+          ),
+          step=10.0,
+          key=f"adv_avg_kpi_input_{task['name']}",
+      )
+
+      mh_avg = task["plants"] / avg_kpi_user if avg_kpi_user > 0 else 0
+      dur_avg = mh_avg / task["staff"] if task["staff"] > 0 else 0
+
+      is_ot_avg = dur_avg > limit_ref
       card_cls2 = "task-card-alert" if is_ot_avg else "task-card-normal"
       if is_ot_avg:
-        status_avg = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds Limit ({task['dur_avg']:.1f} / {limit_ref:.1f} Hours)</span>"
+        status_avg = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds Limit ({dur_avg:.1f} / {limit_ref:.1f} Hours)</span>"
       else:
-        left_a = limit_ref - task["dur_avg"]
+        left_a = limit_ref - dur_avg
         status_avg = f"<span style='color: #1E7E34; font-weight: bold;'>✅ On Track ({left_a:.1f} Hours Within Budget)</span>"
 
       st.markdown(
           f"""
             <div class="{card_cls2}">
-                <p style="margin-bottom:6px; font-weight:bold; color:#1B4332; font-size:1.05rem;">⭐ Average KPI View</p>
-                <p style="margin-bottom:5px;"><b>Inputs:</b> {task['rows']} rows × {task['density']} density | <b>Average KPI:</b> {task['avg_kpi']:.1f}</p>
-                <p style="margin-bottom:5px;"><b>Workload:</b> {task['mh_avg']:.1f} Man-Hours</p>
-                <p style="margin-bottom:5px;"><b>Required Clock Time:</b> {task['dur_avg']:.1f} Hours</p>
+                <p style="margin-bottom:5px;"><b>Inputs:</b> {task['rows']} rows × {task['density']} density | <b>Average KPI:</b> {avg_kpi_user:.1f}</p>
+                <p style="margin-bottom:5px;"><b>Workload:</b> {mh_avg:.1f} Man-Hours</p>
+                <p style="margin-bottom:5px;"><b>Required Clock Time:</b> {dur_avg:.1f} Hours</p>
                 <hr style="margin: 8px 0; border: 0; border-top: 1px solid #D0D0D0;">
                 <p style="margin-bottom: 5px;"><b>Target parameters:</b> {limit_text}</p>
                 <p style="margin-bottom: 0px;"><b>Weekly Status:</b> {status_avg}</p>
@@ -1220,13 +1213,13 @@ with tab_old_calc:
 
 
 # ==========================================
-# TAB 3: SMART HEADCOUNT & SHIFT HOURS (With Full Active Headcount & Leading Hand Hours)
+# TAB 3: SMART HEADCOUNT & SHIFT HOURS (Cleaned of duplicate Average KPI inputs)
 # ==========================================
 with tab_smart_calc:
   st.subheader("📊 Smart Headcount & Shift Hours Calculator")
   st.markdown(
-      "Configure your master glasshouse dimensions and review both Target vs."
-      " Team Average KPIs below."
+      "Configure your master glasshouse dimensions and review required task"
+      " headcounts below."
   )
 
   c_dim1, c_dim2 = st.columns(2)
@@ -1265,7 +1258,6 @@ with tab_smart_calc:
 
   active_tasks_list = list(st.session_state.active_tasks.keys())
   smart_calc_results = {}
-  effective_kpis_for_advanced = {}
 
   sh1, sh2, sh3, sh4 = st.columns([2, 1.2, 1.5, 1.5])
   sh1.markdown("**Task Name**")
@@ -1357,57 +1349,13 @@ with tab_smart_calc:
       }
 
   st.markdown("---")
-  st.markdown(
-      "### ⭐ Average (Actual) KPI Input for Advanced Overtime Calculation"
-  )
 
-  ah1, ah2 = st.columns([2, 2])
-  ah1.markdown("**Task Name**")
-  ah2.markdown("**Team Average (Actual) KPI**")
-  st.markdown("---")
-
-  for task_name in active_tasks_list:
-    if task_name in ["Leading Hand", "Others"]:
-      effective_kpis_for_advanced[task_name] = 100.0
-      continue
-
-    ac1, ac2 = st.columns([2, 2])
-    ac1.markdown(f"**{task_name}**")
-
-    kpis_logged = []
-    for person in st.session_state.staff_db:
-      t_perf = person.get("task_performance", {})
-      if task_name in t_perf:
-        kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
-
-    default_avg_kpi = (
-        sum(kpis_logged) / len(kpis_logged)
-        if kpis_logged
-        else float(st.session_state.task_targets.get(task_name, 100.0))
-    )
-
-    avg_kpi_input = ac2.number_input(
-        "Average KPI",
-        min_value=1.0,
-        value=float(default_avg_kpi),
-        step=10.0,
-        key=f"smart_avg_kpi_input_{task_name}",
-        label_visibility="collapsed",
-    )
-    effective_kpis_for_advanced[task_name] = avg_kpi_input
-
-  # Save to session state so Advanced tab can read it
-  st.session_state.effective_kpis_for_advanced = effective_kpis_for_advanced
-
-  st.markdown("---")
-
-  # --- GRAND TOTAL HOURS INCORPORATING ALL ACTIVE TASKS (12 CLIP/SHOOT, OTHERS, LEADING HANDS) ---
+  # --- GRAND TOTAL HOURS INCORPORATING ALL ACTIVE TASKS ---
   total_recommended_staff = sum(
       int(st.session_state.active_tasks.get(t, res["recommended"]))
       for t, res in smart_calc_results.items()
   )
 
-  # Crop work hours include all tasks where active staff are working on crop/other tasks (Clip/Shoot 12, De-leafing, Lowering, Truss Pruning, Truss Support, Others)
   active_crop_staff_total = sum(
       int(st.session_state.active_tasks.get(t, 0))
       for t in st.session_state.active_tasks.keys()
