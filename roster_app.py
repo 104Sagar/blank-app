@@ -10,7 +10,7 @@ st.set_page_config(
 
 # File paths for persistent database & settings storage
 DATA_FILE = "staff_db.json"
-SETTINGS_FILE = "settings.json"
+SETTINGS_FILE = "json_settings.json"
 
 
 def load_settings():
@@ -1565,6 +1565,29 @@ with tab_smart_calc:
   total_avg_rec_hc = 0
   total_avg_mh = 0.0
 
+  # First pass to compute Clip/Shoot average recommended headcount
+  clip_shoot_avg_rec = 0
+  for task_name in active_tasks_list:
+    if task_name == "Clip/Shoot & Pollination":
+      avg_input_key = f"smart_avg_kpi_{task_name}"
+      if avg_input_key not in st.session_state:
+        default_avg = float(
+            st.session_state.saved_avg_kpis.get(
+                task_name,
+                st.session_state.task_targets.get(task_name, 100.0),
+            )
+        )
+        st.session_state[avg_input_key] = default_avg
+      avg_kpi_val = float(st.session_state[avg_input_key])
+      mh = total_gh_plants / avg_kpi_val if avg_kpi_val > 0 else 0
+      exact_hc = (
+          mh / gh_crop_work_hrs_per_week
+          if gh_crop_work_hrs_per_week > 0
+          else 0
+      )
+      clip_shoot_avg_rec = math.ceil(exact_hc)
+      break
+
   for task_name in active_tasks_list:
     asc1, asc2, asc3, asc4 = st.columns([2, 1.2, 1.5, 1.5])
     asc1.markdown(f"**{task_name}**")
@@ -1638,6 +1661,21 @@ with tab_smart_calc:
     total_avg_rec_hc += rec_hc
     total_avg_mh += mh
 
+  # --- LOCAL POLLINATION TASK (AVERAGE KPI) ---
+  asc1_p, asc2_p, asc3_p, asc4_p = st.columns([2, 1.2, 1.5, 1.5])
+  asc1_p.markdown("**Pollination**")
+  asc2_p.markdown("`2500.0 (Fixed)`")
+  poll_avg_hc = max(0, 12 - clip_shoot_avg_rec)
+  poll_avg_mh = total_gh_plants / 2500.0
+  asc3_p.markdown(f"`{float(poll_avg_hc):.2f} workers`")
+  asc4_p.markdown(
+      f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
+      f" 1.1rem;'>{poll_avg_hc} workers</span>",
+      unsafe_allow_html=True,
+  )
+  total_avg_rec_hc += poll_avg_hc
+  total_avg_mh += poll_avg_mh
+
   st.markdown(
       f"""
         <div style="background: rgba(45,106,79,0.08); padding: 12px 18px; border-radius: 10px; border: 1px solid #C5DACB; margin-top: 10px; margin-bottom: 20px;">
@@ -1670,6 +1708,22 @@ with tab_smart_calc:
   target_kpi_calc_results = {}
   total_target_rec_hc = 0
   total_target_mh = 0.0
+
+  # First pass to compute Clip/Shoot target recommended headcount
+  clip_shoot_target_rec = 0
+  for task_name in active_tasks_list:
+    if task_name == "Clip/Shoot & Pollination":
+      default_target = float(
+          st.session_state.task_targets.get(task_name, 100.0)
+      )
+      mh = total_gh_plants / default_target if default_target > 0 else 0
+      exact_hc = (
+          mh / gh_crop_work_hrs_per_week
+          if gh_crop_work_hrs_per_week > 0
+          else 0
+      )
+      clip_shoot_target_rec = math.ceil(exact_hc)
+      break
 
   for task_name in active_tasks_list:
     sc1, sc2, sc3, sc4 = st.columns([2, 1.2, 1.5, 1.5])
@@ -1760,6 +1814,21 @@ with tab_smart_calc:
 
     total_target_rec_hc += rec_hc
     total_target_mh += mh
+
+  # --- LOCAL POLLINATION TASK (TARGET KPI) ---
+  sc1_p, sc2_p, sc3_p, sc4_p = st.columns([2, 1.2, 1.5, 1.5])
+  sc1_p.markdown("**Pollination**")
+  sc2_p.markdown("`2500.0 (Fixed)`")
+  poll_target_hc = max(0, 12 - clip_shoot_target_rec)
+  poll_target_mh = total_gh_plants / 2500.0
+  sc3_p.markdown(f"`{float(poll_target_hc):.2f} workers`")
+  sc4_p.markdown(
+      f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
+      f" 1.1rem;'>{poll_target_hc} workers</span>",
+      unsafe_allow_html=True,
+  )
+  total_target_rec_hc += poll_target_hc
+  total_target_mh += poll_target_mh
 
   st.markdown(
       f"""
