@@ -1540,7 +1540,7 @@ with tab_smart_calc:
   )
 
   st.markdown("---")
-  st.markdown("### Task Headcount Requirements Table")
+  st.markdown("### Staff Number Recommendations")
 
   gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
   gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
