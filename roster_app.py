@@ -1320,9 +1320,7 @@ with tab_old_calc:
     if task_name in st.session_state.active_tasks:
       staff_qty = int(st.session_state.active_tasks[task_name])
       if staff_qty > 0:
-        hours_per_worker = (
-            remaining_days * (gh_crop_work_hrs_per_week / 5.0)
-        )  # e.g., remaining_days * 7.35
+        hours_per_worker = remaining_days * (gh_crop_work_hrs_per_week / 5.0)
         total_task_mh = staff_qty * hours_per_worker
         total_combined_avg_hours += total_task_mh
 
@@ -1350,6 +1348,26 @@ with tab_old_calc:
             <p style="margin: 0; font-size: 1.1rem;">
                 <b>Total Man-Hours (Average KPI View for Regular Tasks + Leading Hand + Others):</b> 
                 <span style="font-size: 1.3rem; font-weight: bold; color: #A3E4D7;">{total_combined_avg_hours:,.1f} Man-Hours</span>
+            </p>
+        </div>
+        """,
+      unsafe_allow_html=True,
+  )
+
+  # --- PAID COFFEE BREAK ALLOWANCE ---
+  coffee_break_hours = total_recommended_staff * 0.25 * remaining_days
+  final_grand_total = total_combined_avg_hours + coffee_break_hours
+
+  st.markdown(
+      f"""
+        <div style="background: rgba(255, 255, 255, 0.9); padding: 15px 20px; border-radius: 14px; border: 1px solid #C5DACB; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-top: 12px;">
+            <p style="margin: 0 0 6px 0; font-weight: bold; color: #2D6A4F; font-size: 1.1rem;">☕ Paid Coffee Break Allowance</p>
+            <p style="margin: 0; color: #333333; font-size: 1rem;">
+                <b>Calculation:</b> {total_recommended_staff} Active Workers × 0.25 hrs/day × {remaining_days} Days = <b>{coffee_break_hours:,.2f} Man-Hours</b>
+            </p>
+            <hr style="margin: 8px 0; border: 0; border-top: 1px solid #D0D0D0;">
+            <p style="margin: 0; font-size: 1.1rem; color: #1B4332;">
+                <b>Grand Total Including Coffee Breaks:</b> <span style="font-size: 1.25rem; font-weight: bold; color: #2D6A4F;">{final_grand_total:,.2f} Man-Hours</span>
             </p>
         </div>
         """,
