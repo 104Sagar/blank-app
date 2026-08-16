@@ -34,7 +34,7 @@ st.markdown(
     <style>
     /* Main App Background & Typography (Slightly Darker Sage Gradient) */
     .stApp {
-        background: linear-gradient(135deg, #D4E3D8 0%, #E5ECE7 40%, #CEE0D2 100%) !important;
+        background: linear-gradient(135deg, #C2D6C6 0%, #D6E3D8 40%, #B8CDBC 100%) !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 13px;
     }
@@ -54,24 +54,24 @@ st.markdown(
         flex: 1 1 0% !important;
         min-width: 0 !important;
         padding: 0.1rem 0.2rem !important;
-        background: rgba(255, 255, 255, 0.9) !important;
+        background: rgba(255, 255, 255, 0.92) !important;
         border-radius: 8px !important;
-        box-shadow: 0 2px 8px rgba(27, 47, 33, 0.04) !important;
+        box-shadow: 0 2px 8px rgba(27, 47, 33, 0.05) !important;
         border: 1px solid rgba(255, 255, 255, 0.95) !important;
         margin-bottom: 0.3rem !important;
     }
 
     /* Sidebar Styling */
     div[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #D2DFD5 0%, #DEE8E0 100%) !important;
-        border-right: 1px solid rgba(46, 125, 50, 0.15) !important;
+        background: linear-gradient(180deg, #C4D3C7 0%, #D0DEC5 100%) !important;
+        border-right: 1px solid rgba(46, 125, 50, 0.18) !important;
     }
 
     /* Expanders */
     div[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
         border-radius: 8px !important;
-        border: 1px solid #C8D8CC !important;
+        border: 1px solid #B5CBC0 !important;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
         margin-bottom: 0.4rem !important;
     }
@@ -80,7 +80,7 @@ st.markdown(
     div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="base-input"] {
         border-radius: 6px !important;
         background-color: #FFFFFF !important;
-        border: 1px solid #B8CCBD !important;
+        border: 1px solid #A8C2B3 !important;
         font-size: 12.5px !important;
     }
 
@@ -111,7 +111,7 @@ st.markdown(
     /* Code Output Box Styling */
     div[data-testid="stCodeBlock"] {
         border-radius: 8px !important;
-        border: 1px solid #C5D8CB !important;
+        border: 1px solid #A8C2B3 !important;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02) !important;
     }
     </style>
@@ -1479,7 +1479,7 @@ with tab_old_calc:
 
     st.markdown(
         f"""
-        <div style="background: #FFFFFF; padding: 14px 18px; border-radius: 10px; border: 1px solid #C8D8CC; box-shadow: 0 2px 6px rgba(0,0,0,0.02); margin-bottom: 12px;">
+        <div style="background: #FFFFFF; padding: 14px 18px; border-radius: 10px; border: 1px solid #B5CBC0; box-shadow: 0 2px 6px rgba(0,0,0,0.02); margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <h4 style="margin: 0; color: #1B4332; font-size: 1.1rem;">📋 {task_name}</h4>
                 <span style="background: rgba(45,106,79,0.1); color: #2D6A4F; padding: 3px 10px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">{staff_qty} Workers Assigned</span>
