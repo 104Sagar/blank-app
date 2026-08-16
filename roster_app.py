@@ -522,6 +522,7 @@ if "calc_density_m2" not in st.session_state:
   st.session_state.calc_density_m2 = 2.49
 
 
+# Bidirectional Update Callbacks
 def update_from_row_or_plants():
   area_m2 = st.session_state.calc_area_ha * 10000.0
   total_p = st.session_state.calc_rows * st.session_state.calc_plants_per_row
@@ -1164,18 +1165,16 @@ with tab_calc:
     total_area_ha = st.number_input(
         "Total Glasshouse Area (hectares)",
         min_value=0.1,
-        value=5.0,
         step=0.5,
         key="calc_area_ha",
         on_change=update_from_row_or_plants,
     )
-    total_area_m2 = total_area_ha * 10000.0
+    total_area_m2 = st.session_state.calc_area_ha * 10000.0
 
   with c_in2:
     num_rows = st.number_input(
         "Number of Rows",
         min_value=1,
-        value=st.session_state.calc_rows,
         step=5,
         key="calc_rows",
         on_change=update_from_row_or_plants,
@@ -1183,7 +1182,6 @@ with tab_calc:
     plants_per_row = st.number_input(
         "Plant Density per Row (Editable)",
         min_value=1,
-        value=st.session_state.calc_plants_per_row,
         step=10,
         key="calc_plants_per_row",
         on_change=update_from_row_or_plants,
@@ -1193,7 +1191,6 @@ with tab_calc:
     plant_density_m2 = st.number_input(
         "Plant Density per m² (Editable)",
         min_value=0.01,
-        value=float(st.session_state.calc_density_m2),
         step=0.05,
         format="%.2f",
         key="calc_density_m2",
@@ -1214,7 +1211,7 @@ with tab_calc:
     )
 
   # Final Calculations
-  total_plants = num_rows * plants_per_row
+  total_plants = st.session_state.calc_rows * st.session_state.calc_plants_per_row
   final_density_m2 = (
       total_plants / total_area_m2 if total_area_m2 > 0 else 0.0
   )
