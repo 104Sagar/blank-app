@@ -911,7 +911,7 @@ extra_available_staff = [
 ]
 
 
-# --- 8 TABS (Added Performance Tab) ---
+# --- 8 TABS ---
 (
     tab_copy_lists,
     tab_planner,
@@ -1819,7 +1819,7 @@ with tab_kpi:
 
 
 # ==========================================
-# TAB 6: STAFF PROGRESS & SKILLS VIEW
+# TAB 6: STAFF PROGRESS & SKILLS VIEW (FIXED HTML TAG DISPLAY)
 # ==========================================
 with tab_progress:
   st.subheader("📈 Staff Skills & Performance Records")
@@ -1852,13 +1852,15 @@ with tab_progress:
               ])
               st.markdown(
                   f"&nbsp;&nbsp;&nbsp;&nbsp;<small"
-                  f" style='color:gray;'>History: {history_str}</small>"
+                  f" style='color:gray;'>History: {history_str}</small>",
+                  unsafe_allow_html=True,
               )
             else:
               st.markdown(
                   "&nbsp;&nbsp;&nbsp;&nbsp;<small"
                   " style='color:gray;'>History: No prior weekly logs"
-                  " yet</small>"
+                  " yet</small>",
+                  unsafe_allow_html=True,
               )
 
 
@@ -1890,9 +1892,7 @@ with tab_performance:
       )
 
   if task_chart_data:
-    st.markdown(
-        f"##### 📈 Staff KPIs for **{selected_chart_task}**"
-    )
+    st.markdown(f"##### 📈 Staff KPIs for **{selected_chart_task}**")
     st.bar_chart(task_chart_data)
   else:
     st.warning(f"No staff records found for {selected_chart_task}.")
@@ -1905,10 +1905,10 @@ with tab_row_tracker:
   st.subheader("📌 Task-Specific Greenhouse Row Progress Tracker")
   st.markdown(
       "Track completed rows independently per task (excluding management and"
-      " support tasks), along with accurate remaining work hours."
+      " support tasks), along with accurate remaining work hours and work per"
+      " staff."
   )
 
-  # Filter out Leading Hand and Others from row progress tracking
   row_progress_tasks = [
       t
       for t in st.session_state.active_tasks.keys()
@@ -1924,17 +1924,16 @@ with tab_row_tracker:
         task_name, 0
     )
 
-    # Calculate total man-hours required for this task based on current KPI
+    slider_key = f"slider_{task_name}"
+    if slider_key not in st.session_state:
+      st.session_state[slider_key] = current_task_completed
+
     kpi_val = float(
         st.session_state.saved_avg_kpis.get(
             task_name, st.session_state.task_targets.get(task_name, 600.0)
         )
     )
     task_total_mh = total_gh_plants / kpi_val if kpi_val > 0 else 0.0
-
-    # Fixed proper remaining rows calculation (260 - completed)
-    remaining_rows_count = 260 - current_task_completed
-    remaining_work_hours = (remaining_rows_count / 260.0) * task_total_mh
 
     st.markdown(
         f"<div style='background: #FFFFFF; padding: 14px 18px; border-radius: 10px; border: 1px solid #B5CBC0; box-shadow: 0 2px 6px rgba(0,0,0,0.02); margin-bottom: 15px;'>"
@@ -1944,9 +1943,11 @@ with tab_row_tracker:
 
     c_b1, c_b2, c_b3, c_b4 = st.columns(4)
     if c_b1.button("➕ 10 Rows", key=f"p10_{task_name}"):
-      st.session_state.task_row_progress[task_name] = min(
-          260, current_task_completed + 10
+      new_val = min(
+          260, st.session_state.task_row_progress.get(task_name, 0) + 10
       )
+      st.session_state.task_row_progress[task_name] = new_val
+      st.session_state[slider_key] = new_val
       save_settings({
           "completed_rows_count": saved_settings.get(
               "completed_rows_count", 0
@@ -1959,9 +1960,11 @@ with tab_row_tracker:
       st.rerun()
 
     if c_b2.button("➕ 50 Rows", key=f"p50_{task_name}"):
-      st.session_state.task_row_progress[task_name] = min(
-          260, current_task_completed + 50
+      new_val = min(
+          260, st.session_state.task_row_progress.get(task_name, 0) + 50
       )
+      st.session_state.task_row_progress[task_name] = new_val
+      st.session_state[slider_key] = new_val
       save_settings({
           "completed_rows_count": saved_settings.get(
               "completed_rows_count", 0
@@ -1975,6 +1978,7 @@ with tab_row_tracker:
 
     if c_b3.button("Reset", key=f"preset_{task_name}"):
       st.session_state.task_row_progress[task_name] = 0
+      st.session_state[slider_key] = 0
       save_settings({
           "completed_rows_count": saved_settings.get(
               "completed_rows_count", 0
@@ -1988,6 +1992,7 @@ with tab_row_tracker:
 
     if c_b4.button("Complete All", key=f"pall_{task_name}"):
       st.session_state.task_row_progress[task_name] = 260
+      st.session_state[slider_key] = 260
       save_settings({
           "completed_rows_count": saved_settings.get(
               "completed_rows_count", 0
@@ -1999,30 +2004,43 @@ with tab_row_tracker:
       })
       st.rerun()
 
+
     def update_task_slider(t=task_name):
       curr_sets = load_settings()
       if "task_row_progress" not in curr_sets:
         curr_sets["task_row_progress"] = {}
-      curr_sets["task_row_progress"][t] = st.session_state[f"slider_{t}"]
+      val = st.session_state[f"slider_{t}"]
+      curr_sets["task_row_progress"][t] = val
       save_settings(curr_sets)
+
 
     slider_val = st.slider(
         f"Rows Completed for {task_name}:",
         min_value=0,
         max_value=260,
-        value=int(current_task_completed),
         step=1,
-        key=f"slider_{task_name}",
+        key=slider_key,
         on_change=update_task_slider,
     )
     st.session_state.task_row_progress[task_name] = slider_val
+
+    # Calculations
+    remaining_rows_count = max(0, 260 - slider_val)
+    remaining_work_hours = (remaining_rows_count / 260.0) * task_total_mh
+    assigned_staff_qty = st.session_state.active_tasks.get(task_name, 1)
+    remaining_work_per_staff = (
+        remaining_work_hours / assigned_staff_qty
+        if assigned_staff_qty > 0
+        else 0.0
+    )
 
     pct = (slider_val / 260.0) * 100.0
     st.markdown(
         f"<p style='margin: 4px 0 0 0; color: #333; font-size: 0.9rem;'>"
         f"Progress: <b>{slider_val} / 260 rows</b> ({pct:.1f}% completed) &nbsp;|&nbsp; "
-        f"Remaining Rows: <b>{remaining_rows_count} rows</b> &nbsp;|&nbsp; "
-        f"Est. Remaining Work: <b style='color:#2D6A4F;'>{remaining_work_hours:,.1f}h</b>"
+        f"Remaining Rows: <b>{remaining_rows_count} rows</b><br>"
+        f"Est. Remaining Work: <b style='color:#2D6A4F;'>{remaining_work_hours:,.1f}h</b> "
+        f"({assigned_staff_qty} workers assigned &rarr; <b>{remaining_work_per_staff:,.1f}h / staff</b>)"
         f"</p>",
         unsafe_allow_html=True,
     )
