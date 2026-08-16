@@ -132,6 +132,10 @@ if "task_targets" not in st.session_state:
       "Others": 100.0,
   }
 
+# Persistent Average KPIs dictionary
+if "saved_avg_kpis" not in st.session_state:
+  st.session_state.saved_avg_kpis = {}
+
 # Default Staff Data
 DEFAULT_STAFF_DB = [
     {
@@ -1018,7 +1022,7 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (Streamlined & Clean Cards)
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (With Persistent Average KPIs)
 # ==========================================
 with tab_old_calc:
   st.subheader("🧮 Advanced Workload & Overtime Status")
@@ -1069,6 +1073,10 @@ with tab_old_calc:
         sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
     )
 
+    # Load from persistent saved dict if present
+    if task_name not in st.session_state.saved_avg_kpis:
+      st.session_state.saved_avg_kpis[task_name] = default_logged_avg
+
     t_plants = shared_rows * shared_density
 
     mh_target = t_plants / target_kpi if target_kpi > 0 else 0
@@ -1083,7 +1091,6 @@ with tab_old_calc:
         "target_kpi": target_kpi,
         "mh_target": mh_target,
         "dur_target": dur_target,
-        "default_avg_kpi": default_logged_avg,
     })
 
   st.subheader("📝 Task Breakdowns & Overtime Status")
@@ -1131,23 +1138,27 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
-    # --- Average KPI Card ---
+    # --- Average KPI Card with Persistent State ---
     with tc2:
       st.markdown(
           "<p style='margin-bottom:2px; font-weight:bold; color:#1B4332;"
           " font-size:1rem;'>⭐ Average KPI View</p>",
           unsafe_allow_html=True,
       )
+
+      # Callback to update persistent saved dict
+      def update_avg_kpi(t_name=task["name"]):
+        st.session_state.saved_avg_kpis[t_name] = st.session_state[
+            f"adv_avg_kpi_input_{t_name}"
+        ]
+
       avg_kpi_user = st.number_input(
           f"Average KPI for {task['name']}",
           min_value=1.0,
-          value=float(
-              st.session_state.get(
-                  f"adv_avg_kpi_input_{task['name']}", task["default_avg_kpi"]
-              )
-          ),
+          value=float(st.session_state.saved_avg_kpis[task["name"]]),
           step=10.0,
           key=f"adv_avg_kpi_input_{task['name']}",
+          on_change=update_avg_kpi,
           label_visibility="collapsed",
       )
 
