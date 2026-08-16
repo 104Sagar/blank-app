@@ -550,18 +550,18 @@ if "calc_plants_per_row" not in st.session_state:
 st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
 
-# --- 5 STREAMLINED TABS ---
+# --- UPDATED TAB ORDER PER REQUEST ---
 (
     tab_planner,
-    tab_kpi,
-    tab_smart_calc,
     tab_old_calc,
+    tab_smart_calc,
+    tab_kpi,
     tab_progress,
 ) = st.tabs([
     "📋 Roster & Copy Lists",
-    "⭐ Weekly Task-Specific KPI & Quality Tracker",
-    "📊 Smart Headcount & Shift Hours",
     "🧮 Advanced Workload & Overtime Status",
+    "📊 Smart Headcount & Shift Hours",
+    "⭐ Weekly Task-Specific KPI & Quality Tracker",
     "📈 Staff Progress & Skills",
 ])
 
@@ -1018,339 +1018,7 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: WEEKLY TASK-SPECIFIC KPI TRACKER
-# ==========================================
-with tab_kpi:
-  st.subheader("⭐ Weekly Task-Specific KPI & Quality Evaluation")
-  st.markdown(
-      "Set individual KPI scores and quality ratings **per task** for each team"
-      " member below."
-  )
-
-  kpi_tasks_list = [
-      t for t in st.session_state.skills_list if t != "Leading Hand"
-  ]
-
-  selected_task_to_eval = st.selectbox(
-      "Select Task to Evaluate / Update:",
-      options=kpi_tasks_list,
-      key="eval_task_select",
-  )
-  target_val_for_task = st.session_state.task_targets.get(
-      selected_task_to_eval, 100.0
-  )
-  st.info(
-      f"🎯 Current Target KPI for **{selected_task_to_eval}**:"
-      f" **{target_val_for_task}** (Adjustable in the sidebar)"
-  )
-
-  relevant_staff = [
-      s
-      for s in st.session_state.staff_db
-      if selected_task_to_eval in s.get("skills", [])
-  ]
-
-  if not relevant_staff:
-    st.warning(
-        f"No staff currently trained in {selected_task_to_eval}. Go to sidebar"
-        " 'Update / Train Staff Skills' to assign this skill."
-    )
-  else:
-    with st.form(f"kpi_form_{selected_task_to_eval}"):
-      h1, h2, h3, h4 = st.columns([1.5, 1.2, 1, 1.5])
-      h1.markdown("**Staff Name**")
-      h2.markdown(f"**KPI Score (Target: {target_val_for_task})**")
-      h3.markdown("**Quality**")
-      h4.markdown("**Task Notes / Excellence**")
-
-      st.markdown("---")
-
-      form_inputs = {}
-      for person in relevant_staff:
-        c1, c2, c3, c4 = st.columns([1.5, 1.2, 1, 1.5])
-
-        c1.markdown(
-            f"**{person['name']}** <br><small"
-            f" style='color:gray;'>{person['category']}</small>",
-            unsafe_allow_html=True,
-        )
-
-        p_perf = person.get("task_performance", {}).get(
-            selected_task_to_eval,
-            {"kpi": target_val_for_task, "quality": "👍", "notes": ""},
-        )
-
-        kpi_in = c2.number_input(
-            "KPI",
-            min_value=0.0,
-            value=float(p_perf.get("kpi", target_val_for_task)),
-            step=1.0,
-            key=f"kpi_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-        )
-        qual_in = c3.selectbox(
-            "Quality",
-            ["👍", "👎"],
-            index=0 if p_perf.get("quality", "👍") == "👍" else 1,
-            key=f"qual_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-        )
-        note_in = c4.text_input(
-            "Notes",
-            value=p_perf.get("notes", ""),
-            key=f"note_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-            placeholder="e.g. Excellent speed",
-        )
-
-        form_inputs[person["name"]] = {
-            "kpi": kpi_in,
-            "quality": qual_in,
-            "notes": note_in,
-        }
-
-      submit_task_kpi = st.form_submit_button(
-          f"💾 Save Ratings for {selected_task_to_eval}", type="primary"
-      )
-      if submit_task_kpi:
-        for person in st.session_state.staff_db:
-          name = person["name"]
-          if name in form_inputs:
-            if "task_performance" not in person:
-              person["task_performance"] = {}
-            person["task_performance"][selected_task_to_eval] = form_inputs[name]
-
-        save_staff_data(st.session_state.staff_db)
-        st.success(
-            f"Successfully updated KPI and Quality ratings for"
-            f" {selected_task_to_eval}!"
-        )
-        st.rerun()
-
-
-# ==========================================
-# TAB 3: SMART HEADCOUNT & SHIFT HOURS (Target vs. Average KPI Inputs)
-# ==========================================
-with tab_smart_calc:
-  st.subheader("📊 Smart Headcount & Shift Hours Calculator")
-  st.markdown(
-      "Configure your master glasshouse dimensions and review both Target vs."
-      " Team Average KPIs below."
-  )
-
-  c_dim1, c_dim2 = st.columns(2)
-  with c_dim1:
-    st.session_state.calc_rows = st.number_input(
-        "Master Total Rows",
-        min_value=1,
-        value=st.session_state.calc_rows,
-        step=1,
-        key="smart_rows_input",
-    )
-  with c_dim2:
-    st.session_state.calc_plants_per_row = st.number_input(
-        "Master Plant Density per Row",
-        min_value=1,
-        value=st.session_state.calc_plants_per_row,
-        step=10,
-        key="smart_ppr_input",
-    )
-
-  total_gh_plants = (
-      st.session_state.calc_rows * st.session_state.calc_plants_per_row
-  )
-  st.info(
-      f"🌱 **Total Glasshouse Plant Count:** **{total_gh_plants:,.0f}"
-      f" plants** ({st.session_state.calc_rows} rows ×"
-      f" {st.session_state.calc_plants_per_row} plants/row)"
-  )
-
-  st.markdown("---")
-  st.markdown(
-      "### Task Headcount Requirements Table (Driven by Target KPIs)"
-  )
-
-  gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
-  gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
-  gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
-
-  active_tasks_list = list(st.session_state.active_tasks.keys())
-  smart_calc_results = {}
-  effective_kpis_for_advanced = {}
-
-  sh1, sh2, sh3, sh4 = st.columns([2, 1.2, 1.5, 1.5])
-  sh1.markdown("**Task Name**")
-  sh2.markdown("**Target KPI**")
-  sh3.markdown("**Exact Headcount**")
-  sh4.markdown("**Rec. Headcount (Ceiling)**")
-
-  st.markdown("---")
-
-  for task_name in active_tasks_list:
-    sc1, sc2, sc3, sc4 = st.columns([2, 1.2, 1.5, 1.5])
-
-    sc1.markdown(f"**{task_name}**")
-
-    if task_name == "Leading Hand":
-      current_lh_count = float(st.session_state.active_tasks[task_name])
-      lh_input = sc2.number_input(
-          "LH Count",
-          min_value=1.0,
-          value=current_lh_count,
-          step=1.0,
-          key=f"smart_kpi_{task_name}",
-          label_visibility="collapsed",
-      )
-      smart_calc_results[task_name] = {
-          "exact": lh_input,
-          "recommended": int(lh_input),
-          "man_hours": lh_input * gh_crop_work_hrs_per_week,
-      }
-      sc3.markdown(f"`{lh_input:.2f} workers`")
-      sc4.markdown(
-          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{int(lh_input)} workers</span>",
-          unsafe_allow_html=True,
-      )
-    elif task_name == "Others":
-      current_other_count = float(st.session_state.active_tasks[task_name])
-      other_input = sc2.number_input(
-          "People Count",
-          min_value=0.0,
-          value=current_other_count,
-          step=1.0,
-          key=f"smart_kpi_{task_name}",
-          label_visibility="collapsed",
-      )
-      smart_calc_results[task_name] = {
-          "exact": other_input,
-          "recommended": int(other_input),
-          "man_hours": other_input * gh_crop_work_hrs_per_week,
-      }
-      sc3.markdown(f"`{other_input:.2f} workers`")
-      sc4.markdown(
-          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{int(other_input)} workers</span>",
-          unsafe_allow_html=True,
-      )
-    else:
-      default_target = float(
-          st.session_state.task_targets.get(task_name, 100.0)
-      )
-      target_kpi_input = sc2.number_input(
-          "Target KPI",
-          min_value=1.0,
-          value=default_target,
-          step=10.0,
-          key=f"smart_target_kpi_{task_name}",
-          label_visibility="collapsed",
-      )
-      st.session_state.task_targets[task_name] = target_kpi_input
-
-      man_hours = total_gh_plants / target_kpi_input if target_kpi_input > 0 else 0
-      exact_hc = (
-          man_hours / gh_crop_work_hrs_per_week
-          if gh_crop_work_hrs_per_week > 0
-          else 0
-      )
-      rec_hc = math.ceil(exact_hc)
-
-      sc3.markdown(f"`{exact_hc:.2f} workers`")
-      sc4.markdown(
-          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{rec_hc} workers</span>",
-          unsafe_allow_html=True,
-      )
-
-      smart_calc_results[task_name] = {
-          "exact": exact_hc,
-          "recommended": rec_hc,
-          "man_hours": man_hours,
-      }
-
-  st.markdown("---")
-  st.markdown(
-      "### ⭐ Average (Actual) KPI Input for Advanced Overtime Calculation"
-  )
-  st.markdown(
-      "Set or review the Team Average KPI achieved from Tab 2 for each task"
-      " below:"
-  )
-
-  ah1, ah2 = st.columns([2, 2])
-  ah1.markdown("**Task Name**")
-  ah2.markdown("**Team Average (Actual) KPI**")
-  st.markdown("---")
-
-  for task_name in active_tasks_list:
-    if task_name in ["Leading Hand", "Others"]:
-      effective_kpis_for_advanced[task_name] = 100.0
-      continue
-
-    ac1, ac2 = st.columns([2, 2])
-    ac1.markdown(f"**{task_name}**")
-
-    # Calculate actual average KPI achieved from Tab 2 staff db records for this task
-    kpis_logged = []
-    for person in st.session_state.staff_db:
-      t_perf = person.get("task_performance", {})
-      if task_name in t_perf:
-        kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
-
-    default_avg_kpi = (
-        sum(kpis_logged) / len(kpis_logged)
-        if kpis_logged
-        else float(st.session_state.task_targets.get(task_name, 100.0))
-    )
-
-    avg_kpi_input = ac2.number_input(
-        "Average KPI",
-        min_value=1.0,
-        value=float(default_avg_kpi),
-        step=10.0,
-        key=f"smart_avg_kpi_input_{task_name}",
-        label_visibility="collapsed",
-    )
-    effective_kpis_for_advanced[task_name] = avg_kpi_input
-
-  st.markdown("---")
-
-  crop_only_tasks = {
-      t: res
-      for t, res in smart_calc_results.items()
-      if t not in ["Leading Hand", "Others"]
-  }
-  total_crop_work_hours = sum(
-      res["man_hours"] for res in crop_only_tasks.values()
-  )
-  total_recommended_staff = sum(
-      res["recommended"] for res in smart_calc_results.values()
-  )
-  total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
-  total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
-
-  st.subheader("📋 Grand Total Shift Hours Required (Target KPI Baseline)")
-  gh_res1, gh_res2, gh_res3, gh_res4 = st.columns(4)
-  gh_res1.metric("Total Recommended Headcount", f"{total_recommended_staff} Workers")
-  gh_res2.metric("Total Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
-  gh_res3.metric("Total Paid Hours", f"{total_paid_hours:,.1f} hrs")
-  gh_res4.metric("Total Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
-
-  st.markdown("---")
-
-  if st.button(
-      "🔄 Sync Headcounts to Weekly Roster Planner (Tab 1)", type="primary"
-  ):
-    for task_name, res in smart_calc_results.items():
-      st.session_state.active_tasks[task_name] = res["recommended"]
-    st.success(
-        "Successfully populated Tab 1 headcounts with the recommended values!"
-    )
-    st.rerun()
-
-
-# ==========================================
-# TAB 4: ADVANCED WORKLOAD & OVERTIME STATUS (Target vs. Actual Avg KPI Side-by-Side)
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS
 # ==========================================
 with tab_old_calc:
   st.subheader(
@@ -1388,20 +1056,21 @@ with tab_old_calc:
 
   tasks_comparison_data = []
 
+  # We need effective_kpis_from smart calc or default
+  effective_kpis = st.session_state.get("effective_kpis_for_advanced", {})
+
   for task_name, staff_qty in st.session_state.active_tasks.items():
     if task_name in ["Leading Hand", "Others"]:
       continue
 
     target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
-    avg_kpi = float(effective_kpis_for_advanced.get(task_name, target_kpi))
+    avg_kpi = float(effective_kpis.get(task_name, target_kpi))
 
     t_plants = shared_rows * shared_density
 
-    # Target calculations
     mh_target = t_plants / target_kpi if target_kpi > 0 else 0
     dur_target = mh_target / staff_qty if staff_qty > 0 else 0
 
-    # Average KPI calculations
     mh_avg = t_plants / avg_kpi if avg_kpi > 0 else 0
     dur_avg = mh_avg / staff_qty if staff_qty > 0 else 0
 
@@ -1419,7 +1088,6 @@ with tab_old_calc:
         "dur_avg": dur_avg,
     })
 
-  # Aggregates
   crop_mh_target = sum(t["mh_target"] for t in tasks_comparison_data)
   crop_mh_avg = sum(t["mh_avg"] for t in tasks_comparison_data)
 
@@ -1434,7 +1102,7 @@ with tab_old_calc:
           for t in tasks_comparison_data
           if "clip/shoot" in t["name"].lower()
       ),
-      0,
+      12,
   )
 
   pollination_loss_person = (9.0 / 5.0) * remaining_days
@@ -1549,6 +1217,341 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
     st.markdown("---")
+
+
+# ==========================================
+# TAB 3: SMART HEADCOUNT & SHIFT HOURS (With Full Active Headcount & Leading Hand Hours)
+# ==========================================
+with tab_smart_calc:
+  st.subheader("📊 Smart Headcount & Shift Hours Calculator")
+  st.markdown(
+      "Configure your master glasshouse dimensions and review both Target vs."
+      " Team Average KPIs below."
+  )
+
+  c_dim1, c_dim2 = st.columns(2)
+  with c_dim1:
+    st.session_state.calc_rows = st.number_input(
+        "Master Total Rows",
+        min_value=1,
+        value=st.session_state.calc_rows,
+        step=1,
+        key="smart_rows_input",
+    )
+  with c_dim2:
+    st.session_state.calc_plants_per_row = st.number_input(
+        "Master Plant Density per Row",
+        min_value=1,
+        value=st.session_state.calc_plants_per_row,
+        step=10,
+        key="smart_ppr_input",
+    )
+
+  total_gh_plants = (
+      st.session_state.calc_rows * st.session_state.calc_plants_per_row
+  )
+  st.info(
+      f"🌱 **Total Glasshouse Plant Count:** **{total_gh_plants:,.0f}"
+      f" plants** ({st.session_state.calc_rows} rows ×"
+      f" {st.session_state.calc_plants_per_row} plants/row)"
+  )
+
+  st.markdown("---")
+  st.markdown("### Task Headcount Requirements Table")
+
+  gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
+  gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
+  gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
+
+  active_tasks_list = list(st.session_state.active_tasks.keys())
+  smart_calc_results = {}
+  effective_kpis_for_advanced = {}
+
+  sh1, sh2, sh3, sh4 = st.columns([2, 1.2, 1.5, 1.5])
+  sh1.markdown("**Task Name**")
+  sh2.markdown("**Target KPI / Count**")
+  sh3.markdown("**Exact Headcount**")
+  sh4.markdown("**Rec. Headcount (Ceiling)**")
+
+  st.markdown("---")
+
+  for task_name in active_tasks_list:
+    sc1, sc2, sc3, sc4 = st.columns([2, 1.2, 1.5, 1.5])
+    sc1.markdown(f"**{task_name}**")
+
+    if task_name == "Leading Hand":
+      current_lh_count = float(st.session_state.active_tasks[task_name])
+      lh_input = sc2.number_input(
+          "LH Count",
+          min_value=1.0,
+          value=current_lh_count,
+          step=1.0,
+          key=f"smart_kpi_{task_name}",
+          label_visibility="collapsed",
+      )
+      smart_calc_results[task_name] = {
+          "exact": lh_input,
+          "recommended": int(lh_input),
+          "man_hours": lh_input * gh_crop_work_hrs_per_week,
+      }
+      sc3.markdown(f"`{lh_input:.2f} workers`")
+      sc4.markdown(
+          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
+          f" 1.1rem;'>{int(lh_input)} workers</span>",
+          unsafe_allow_html=True,
+      )
+    elif task_name == "Others":
+      current_other_count = float(st.session_state.active_tasks[task_name])
+      other_input = sc2.number_input(
+          "People Count",
+          min_value=0.0,
+          value=current_other_count,
+          step=1.0,
+          key=f"smart_kpi_{task_name}",
+          label_visibility="collapsed",
+      )
+      smart_calc_results[task_name] = {
+          "exact": other_input,
+          "recommended": int(other_input),
+          "man_hours": other_input * gh_crop_work_hrs_per_week,
+      }
+      sc3.markdown(f"`{other_input:.2f} workers`")
+      sc4.markdown(
+          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
+          f" 1.1rem;'>{int(other_input)} workers</span>",
+          unsafe_allow_html=True,
+      )
+    else:
+      default_target = float(
+          st.session_state.task_targets.get(task_name, 100.0)
+      )
+      target_kpi_input = sc2.number_input(
+          "Target KPI",
+          min_value=1.0,
+          value=default_target,
+          step=10.0,
+          key=f"smart_target_kpi_{task_name}",
+          label_visibility="collapsed",
+      )
+      st.session_state.task_targets[task_name] = target_kpi_input
+
+      man_hours = total_gh_plants / target_kpi_input if target_kpi_input > 0 else 0
+      exact_hc = (
+          man_hours / gh_crop_work_hrs_per_week
+          if gh_crop_work_hrs_per_week > 0
+          else 0
+      )
+      rec_hc = math.ceil(exact_hc)
+
+      sc3.markdown(f"`{exact_hc:.2f} workers`")
+      sc4.markdown(
+          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
+          f" 1.1rem;'>{rec_hc} workers</span>",
+          unsafe_allow_html=True,
+      )
+
+      smart_calc_results[task_name] = {
+          "exact": exact_hc,
+          "recommended": rec_hc,
+          "man_hours": man_hours,
+      }
+
+  st.markdown("---")
+  st.markdown(
+      "### ⭐ Average (Actual) KPI Input for Advanced Overtime Calculation"
+  )
+
+  ah1, ah2 = st.columns([2, 2])
+  ah1.markdown("**Task Name**")
+  ah2.markdown("**Team Average (Actual) KPI**")
+  st.markdown("---")
+
+  for task_name in active_tasks_list:
+    if task_name in ["Leading Hand", "Others"]:
+      effective_kpis_for_advanced[task_name] = 100.0
+      continue
+
+    ac1, ac2 = st.columns([2, 2])
+    ac1.markdown(f"**{task_name}**")
+
+    kpis_logged = []
+    for person in st.session_state.staff_db:
+      t_perf = person.get("task_performance", {})
+      if task_name in t_perf:
+        kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
+
+    default_avg_kpi = (
+        sum(kpis_logged) / len(kpis_logged)
+        if kpis_logged
+        else float(st.session_state.task_targets.get(task_name, 100.0))
+    )
+
+    avg_kpi_input = ac2.number_input(
+        "Average KPI",
+        min_value=1.0,
+        value=float(default_avg_kpi),
+        step=10.0,
+        key=f"smart_avg_kpi_input_{task_name}",
+        label_visibility="collapsed",
+    )
+    effective_kpis_for_advanced[task_name] = avg_kpi_input
+
+  # Save to session state so Advanced tab can read it
+  st.session_state.effective_kpis_for_advanced = effective_kpis_for_advanced
+
+  st.markdown("---")
+
+  # --- GRAND TOTAL HOURS INCORPORATING ALL ACTIVE TASKS (12 CLIP/SHOOT, OTHERS, LEADING HANDS) ---
+  total_recommended_staff = sum(
+      int(st.session_state.active_tasks.get(t, res["recommended"]))
+      for t, res in smart_calc_results.items()
+  )
+
+  # Crop work hours include all tasks where active staff are working on crop/other tasks (Clip/Shoot 12, De-leafing, Lowering, Truss Pruning, Truss Support, Others)
+  active_crop_staff_total = sum(
+      int(st.session_state.active_tasks.get(t, 0))
+      for t in st.session_state.active_tasks.keys()
+      if t != "Leading Hand"
+  )
+  leading_hand_staff_count = int(
+      st.session_state.active_tasks.get("Leading Hand", 0)
+  )
+
+  total_crop_work_hours = (
+      active_crop_staff_total + leading_hand_staff_count
+  ) * gh_crop_work_hrs_per_week
+  total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
+  total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
+
+  st.subheader("📋 Grand Total Shift Hours Required")
+  gh_res1, gh_res2, gh_res3, gh_res4 = st.columns(4)
+  gh_res1.metric("Total Recommended Headcount", f"{total_recommended_staff} Workers")
+  gh_res2.metric("Total Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
+  gh_res3.metric("Total Paid Hours", f"{total_paid_hours:,.1f} hrs")
+  gh_res4.metric("Total Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
+
+  st.markdown("---")
+
+  if st.button(
+      "🔄 Sync Headcounts to Weekly Roster Planner (Tab 1)", type="primary"
+  ):
+    for task_name, res in smart_calc_results.items():
+      st.session_state.active_tasks[task_name] = res["recommended"]
+    st.success(
+        "Successfully populated Tab 1 headcounts with the recommended values!"
+    )
+    st.rerun()
+
+
+# ==========================================
+# TAB 4: WEEKLY TASK-SPECIFIC KPI TRACKER
+# ==========================================
+with tab_kpi:
+  st.subheader("⭐ Weekly Task-Specific KPI & Quality Evaluation")
+  st.markdown(
+      "Set individual KPI scores and quality ratings **per task** for each team"
+      " member below."
+  )
+
+  kpi_tasks_list = [
+      t for t in st.session_state.skills_list if t != "Leading Hand"
+  ]
+
+  selected_task_to_eval = st.selectbox(
+      "Select Task to Evaluate / Update:",
+      options=kpi_tasks_list,
+      key="eval_task_select",
+  )
+  target_val_for_task = st.session_state.task_targets.get(
+      selected_task_to_eval, 100.0
+  )
+  st.info(
+      f"🎯 Current Target KPI for **{selected_task_to_eval}**:"
+      f" **{target_val_for_task}** (Adjustable in the sidebar)"
+  )
+
+  relevant_staff = [
+      s
+      for s in st.session_state.staff_db
+      if selected_task_to_eval in s.get("skills", [])
+  ]
+
+  if not relevant_staff:
+    st.warning(
+        f"No staff currently trained in {selected_task_to_eval}. Go to sidebar"
+        " 'Update / Train Staff Skills' to assign this skill."
+    )
+  else:
+    with st.form(f"kpi_form_{selected_task_to_eval}"):
+      h1, h2, h3, h4 = st.columns([1.5, 1.2, 1, 1.5])
+      h1.markdown("**Staff Name**")
+      h2.markdown(f"**KPI Score (Target: {target_val_for_task})**")
+      h3.markdown("**Quality**")
+      h4.markdown("**Task Notes / Excellence**")
+
+      st.markdown("---")
+
+      form_inputs = {}
+      for person in relevant_staff:
+        c1, c2, c3, c4 = st.columns([1.5, 1.2, 1, 1.5])
+
+        c1.markdown(
+            f"**{person['name']}** <br><small"
+            f" style='color:gray;'>{person['category']}</small>",
+            unsafe_allow_html=True,
+        )
+
+        p_perf = person.get("task_performance", {}).get(
+            selected_task_to_eval,
+            {"kpi": target_val_for_task, "quality": "👍", "notes": ""},
+        )
+
+        kpi_in = c2.number_input(
+            "KPI",
+            min_value=0.0,
+            value=float(p_perf.get("kpi", target_val_for_task)),
+            step=1.0,
+            key=f"kpi_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+        )
+        qual_in = c3.selectbox(
+            "Quality",
+            ["👍", "👎"],
+            index=0 if p_perf.get("quality", "👍") == "👍" else 1,
+            key=f"qual_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+        )
+        note_in = c4.text_input(
+            "Notes",
+            value=p_perf.get("notes", ""),
+            key=f"note_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+            placeholder="e.g. Excellent speed",
+        )
+
+        form_inputs[person["name"]] = {
+            "kpi": kpi_in,
+            "quality": qual_in,
+            "notes": note_in,
+        }
+
+      submit_task_kpi = st.form_submit_button(
+          f"💾 Save Ratings for {selected_task_to_eval}", type="primary"
+      )
+      if submit_task_kpi:
+        for person in st.session_state.staff_db:
+          name = person["name"]
+          if name in form_inputs:
+            if "task_performance" not in person:
+              person["task_performance"] = {}
+            person["task_performance"][selected_task_to_eval] = form_inputs[name]
+
+        save_staff_data(st.session_state.staff_db)
+        st.success(
+            f"Successfully updated KPI and Quality ratings for"
+            f" {selected_task_to_eval}!"
+        )
+        st.rerun()
 
 
 # ==========================================
