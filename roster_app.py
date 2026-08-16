@@ -619,7 +619,7 @@ allocated_roster = {task: [] for task in task_requirements}
 def allocate_by_tier(tier_index, match_label):
   for task_name, req_count in task_requirements.items():
     if task_name == "Leading Hand":
-      continue  # Handled separately
+      continue
     while len(allocated_roster[task_name]) < req_count:
       assigned_flat = [
           m["person"] for mems in allocated_roster.values() for m in mems
@@ -746,6 +746,7 @@ with tab_copy_lists:
 
   c_copy1, c_copy2 = st.columns(2)
 
+  # 1. Grouped by Task Heading (Strictly tasks only)
   with c_copy1:
     st.markdown("**1. Grouped by Task Heading:**")
     task_text_output = "GH3 - WEEKLY LABOR PLAN (BY TASK)\n"
@@ -767,19 +768,9 @@ with tab_copy_lists:
         task_text_output += f"{idx}. {m['name']} ({m['category']}){note}\n"
       task_text_output += "\n"
 
-    if extra_available_staff:
-      task_text_output += "*EXTRA AVAILABLE STAFF (NOT REQUIRED)*\n"
-      for u in extra_available_staff:
-        task_text_output += f"- {u['name']} ({u['category']})\n"
-      task_text_output += "\n"
-
-    if absent_staff_records:
-      task_text_output += "*STANDBY / UNASSIGNED STAFF (ABSENT)*\n"
-      for u in absent_staff_records:
-        task_text_output += f"- {u['name']} ({u['category']})\n"
-
     st.code(task_text_output, language="text")
 
+  # 2. Grouped by Employee Category (Strictly assigned staff only)
   with c_copy2:
     st.markdown("**2. Grouped by Employee Category:**")
     category_map = {"GG": [], "Leading Hand": [], "TOTC": [], "Urson": []}
@@ -814,18 +805,30 @@ with tab_copy_lists:
           cat_text_output += f"{idx}. {m['name']} - {m['task']}{note}\n"
         cat_text_output += "\n"
 
-    if extra_available_staff:
-      cat_text_output += "*EXTRA AVAILABLE STAFF (NOT REQUIRED)*\n"
-      for u in extra_available_staff:
-        cat_text_output += f"- {u['name']} ({u['category']})\n"
-      cat_text_output += "\n"
-
-    if absent_staff_records:
-      cat_text_output += "*STANDBY / UNASSIGNED STAFF (ABSENT)*\n"
-      for u in absent_staff_records:
-        cat_text_output += f"- {u['name']} ({u['category']})\n"
-
     st.code(cat_text_output, language="text")
+
+  st.markdown("---")
+
+  # 3. Separate 3rd Copy Box for Unassigned / Extra / Absent Staff
+  st.markdown("**3. Standby, Unassigned & Extra Staff Lists:**")
+  unassigned_text_output = "GH3 - STANDBY & UNASSIGNED STAFF\n"
+  unassigned_text_output += "-----------------------------------\n\n"
+
+  if extra_available_staff:
+    unassigned_text_output += "*EXTRA AVAILABLE STAFF (NOT REQUIRED)*\n"
+    for idx, u in enumerate(extra_available_staff, 1):
+      unassigned_text_output += f"{idx}. {u['name']} ({u['category']})\n"
+    unassigned_text_output += "\n"
+
+  if absent_staff_records:
+    unassigned_text_output += "*ABSENT / ON LEAVE*\n"
+    for idx, u in enumerate(absent_staff_records, 1):
+      unassigned_text_output += f"{idx}. {u['name']} ({u['category']})\n"
+
+  if not extra_available_staff and not absent_staff_records:
+    unassigned_text_output += "None\n"
+
+  st.code(unassigned_text_output, language="text")
 
 
 # ==========================================
