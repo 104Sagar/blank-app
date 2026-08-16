@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import streamlit as st
 
@@ -82,6 +83,26 @@ st.markdown(
         border-radius: 12px !important;
         border: 1px solid #D1E0D5 !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    /* Task Card Standard Style for Workload Calculator */
+    .task-card-normal {
+        background-color: #FFFFFF;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid #D5E3D8;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    
+    /* Task Card Overtime/Alert Style */
+    .task-card-alert {
+        background-color: #FFF0F2;
+        padding: 15px;
+        border-radius: 12px;
+        border: 2px solid #FFC1CC;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
     </style>
 """,
@@ -522,7 +543,6 @@ if "calc_density_m2" not in st.session_state:
   st.session_state.calc_density_m2 = 2.49
 
 
-# Bidirectional Update Callbacks
 def update_from_row_or_plants():
   area_m2 = st.session_state.calc_area_ha * 10000.0
   total_p = st.session_state.calc_rows * st.session_state.calc_plants_per_row
@@ -550,11 +570,15 @@ st.markdown("---")
     tab_kpi,
     tab_progress,
     tab_calc,
+    tab_old_calc,
+    tab_smart_calc,
 ) = st.tabs([
     "📋 Roster & Copy Lists",
     "⭐ Weekly Task-Specific KPI & Quality Tracker",
     "📈 Staff Progress & Skills",
     "🌱 Labor Planning Calculator",
+    "🧮 Advanced Workload Calculator",
+    "📊 Smart Headcount & Hours",
 ])
 
 # ==========================================
@@ -774,7 +798,7 @@ with tab_planner:
       new_cnt = c2.number_input(
           "Headcount",
           min_value=0,
-          value=count,
+          value=int(count),
           key=f"cnt_{task_name}",
           label_visibility="collapsed",
       )
@@ -1230,3 +1254,326 @@ with tab_calc:
   res4.metric(
       "Staff Required (at 40 hrs/wk)", f"{estimated_staff_needed_40h:,.1f} workers"
   )
+
+
+# ==========================================
+# TAB 5: ADVANCED WORKLOAD CALCULATOR (Integrated from Old App)
+# ==========================================
+with tab_old_calc:
+  st.subheader("🧮 Advanced Workload & Overtime Calculator")
+  st.markdown(
+      "Configure task parameters below to analyze timeline constraints, pollination"
+      " deductions, and overtime alerts."
+  )
+  st.markdown("---")
+
+  c_ctrl1, c_ctrl2 = st.columns(2)
+  with c_ctrl1:
+    remaining_days = st.slider(
+        "📅 Remaining Days in Week",
+        min_value=1.0,
+        max_value=5.0,
+        value=5.0,
+        step=0.5,
+        key="old_calc_rem_days",
+    )
+    max_allowed_hours = remaining_days * 8.0
+    st.markdown(f"**Standard base limit:** {max_allowed_hours:.1f} Hours / Staff")
+
+  with c_ctrl2:
+    num_tasks = st.selectbox(
+        "How many tasks to calculate?",
+        options=[1, 2, 3, 4, 5],
+        index=4,
+        key="old_calc_num_tasks",
+    )
+
+  st.markdown("---")
+
+  task_defaults = {
+      0: {
+          "name": "Clip/Shoot & Pollination",
+          "kpi": st.session_state.task_targets.get(
+              "Clip/Shoot & Pollination", 674.0
+          ),
+          "staff": 12,
+      },
+      1: {
+          "name": "Lowering",
+          "kpi": st.session_state.task_targets.get("Lowering", 1333.0),
+          "staff": 6,
+      },
+      2: {
+          "name": "De-leafing",
+          "kpi": st.session_state.task_targets.get("De-leafing", 800.0),
+          "staff": 5,
+      },
+      3: {
+          "name": "Truss Pruning",
+          "kpi": st.session_state.task_targets.get("Truss Pruning", 1200.0),
+          "staff": 4,
+      },
+      4: {
+          "name": "Truss Support",
+          "kpi": st.session_state.task_targets.get("Truss Support", 120.0),
+          "staff": 6,
+      },
+  }
+
+  tasks_data = []
+
+  for i in range(num_tasks):
+    defaults = task_defaults.get(i, {"name": f"Task {i+1}", "kpi": 180, "staff": 2})
+
+    with st.expander(f"🛠️ Task {i+1}: {defaults['name']}", expanded=True):
+      tc1, tc2, tc3, tc4 = st.columns(4)
+      task_name = tc1.text_input(
+          f"Task {i+1} Name", value=defaults["name"], key=f"old_name_{i}"
+      )
+      display_name = task_name if task_name.strip() != "" else f"Task {i+1}"
+
+      density = tc2.number_input(
+          "Plant Density", min_value=1, value=640, step=10, key=f"old_dens_{i}"
+      )
+      total_rows = tc3.number_input(
+          "Total Rows", min_value=1, value=260, step=1, key=f"old_rows_{i}"
+      )
+      kpi = tc4.number_input(
+          "Target KPI", min_value=1, value=int(defaults["kpi"]), key=f"old_kpi_{i}"
+      )
+      staff_count = st.number_input(
+          "Staff Available", min_value=1, value=defaults["staff"], key=f"old_staff_{i}"
+      )
+
+    t_plants = total_rows * density
+    t_man_hours = t_plants / kpi
+    t_duration = t_man_hours / staff_count
+
+    tasks_data.append({
+        "name": display_name,
+        "plants": t_plants,
+        "man_hours": t_man_hours,
+        "duration": t_duration,
+        "rows": total_rows,
+        "density": density,
+        "kpi": kpi,
+        "staff": staff_count,
+    })
+
+  crop_care_man_hours = sum(t["man_hours"] for t in tasks_data)
+
+  unique_staff_total = 0
+  clip_shoot_staff_count = 0
+
+  for t in tasks_data:
+    if "truss support" not in t["name"].lower():
+      unique_staff_total += t["staff"]
+    if "clip/shoot" in t["name"].lower():
+      clip_shoot_staff_count = t["staff"]
+
+  pollination_hours_lost_per_person = (9.0 / 5.0) * remaining_days
+  total_pollination_man_hours_lost = (
+      clip_shoot_staff_count * pollination_hours_lost_per_person
+  )
+
+  grand_total_man_hours = crop_care_man_hours + total_pollination_man_hours_lost
+  avg_hours_per_person = (
+      grand_total_man_hours / unique_staff_total
+      if unique_staff_total > 0
+      else 0.0
+  )
+
+  st.markdown("---")
+  st.subheader("📊 Live Weekly Summary (All Tasks)")
+
+  m1, m2 = st.columns(2)
+  m1.metric("Total Combined Workload", f"{grand_total_man_hours:.1f} Man-Hours")
+  m2.metric(
+      "Avg Workload per Person",
+      f"{avg_hours_per_person:.1f} Hours",
+      help=(
+          "Includes pollination hours. Calculated across"
+          f" {unique_staff_total} unique crew members."
+      ),
+  )
+
+  st.markdown("---")
+  st.subheader("📝 Task Breakdowns & Overtime Status")
+
+  main_cols = st.columns(2)
+
+  for index, task in enumerate(tasks_data):
+    is_clip_shoot = "clip/shoot" in task["name"].lower()
+    is_shared_team_task = (
+        "lowering" in task["name"].lower()
+        or "truss support" in task["name"].lower()
+    )
+
+    if is_clip_shoot:
+      limit_reference = max_allowed_hours - pollination_hours_lost_per_person
+      is_overtime = task["duration"] > limit_reference
+      limit_text = f"Remaining Limit minus Pollination ({limit_reference:.1f} Hrs Max)"
+    elif is_shared_team_task:
+      is_overtime = task["duration"] > 20.0
+      limit_reference = 20.0
+      limit_text = "Shared Shift Limit (20.0 Hrs Max)"
+    else:
+      is_overtime = task["duration"] > max_allowed_hours
+      limit_reference = max_allowed_hours
+      limit_text = f"Remaining Days Limit ({max_allowed_hours:.1f} Hrs Max)"
+
+    card_class = "task-card-alert" if is_overtime else "task-card-normal"
+
+    if is_overtime:
+      status_text = (
+          "<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds Limit"
+          f" ({task['duration']:.1f} / {limit_reference:.1f} Hours)</span>"
+      )
+    else:
+      leftover = limit_reference - task["duration"]
+      status_text = (
+          "<span style='color: #1E7E34; font-weight: bold;'>✅ On Track"
+          f" ({leftover:.1f} Hours Within Budget)</span>"
+      )
+
+    target_col = main_cols[index % 2]
+
+    with target_col:
+      st.markdown(
+          f"""
+            <div class="{card_class}">
+                <h4>📋 {task['name']}</h4>
+                <p style="margin-bottom: 5px;"><b>Inputs:</b> {task['rows']} rows × {task['density']} density | <b>KPI:</b> {task['kpi']} | <b>Staff:</b> {task['staff']}</p>
+                <p style="margin-bottom: 5px;"><b>Workload:</b> {task['man_hours']:.1f} Man-Hours</p>
+                <p style="margin-bottom: 5px;"><b>Required Clock Time:</b> {task['duration']:.1f} Hours</p>
+                <hr style="margin: 10px 0; border: 0; border-top: 1px solid #D0D0D0;">
+                <p style="margin-bottom: 5px;"><b>Target parameters:</b> {limit_text}</p>
+                <p style="margin-bottom: 0px;"><b>Weekly Status:</b> {status_text}</p>
+            </div>
+            """,
+          unsafe_allow_html=True,
+      )
+
+
+# ==========================================
+# TAB 6: SMART HEADCOUNT & HOURS CALCULATOR
+# ==========================================
+with tab_smart_calc:
+  st.subheader("📊 Smart Headcount & Shift Hours Calculator")
+  st.markdown(
+      "Calculates the exact staff required per task based on weekly average KPIs,"
+      " glasshouse plant totals, and standard shift hours."
+  )
+  st.markdown(
+      "**Shift Structure:** 7.35 crop work hours/day $\times$ 5 days ="
+      " **36.75 crop work hours/week** per worker. (Paid: 7.5 hrs/day | Onsite:"
+      " 8.0 hrs/day)"
+  )
+  st.markdown("---")
+
+  total_gh_plants = (
+      st.session_state.calc_rows * st.session_state.calc_plants_per_row
+  )
+  st.info(
+      f"🌱 **Master Glasshouse Dimensions Linked:** Total Plants ="
+      f" **{total_gh_plants:,.0f}** ({st.session_state.calc_rows} rows ×"
+      f" {st.session_state.calc_plants_per_row} plants/row)"
+  )
+
+  st.markdown("### Task Headcount Requirements Table")
+
+  gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
+  gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
+  gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
+
+  active_tasks_list = list(st.session_state.active_tasks.keys())
+  smart_calc_results = {}
+
+  # Header columns
+  sh1, sh2, sh3, sh4, sh5 = st.columns([2, 1.2, 1.2, 1.5, 1.5])
+  sh1.markdown("**Task Name**")
+  sh2.markdown("**Avg KPI**")
+  sh3.markdown("**Total Plants**")
+  sh4.markdown("**Exact Headcount**")
+  sh5.markdown("**Rec. Headcount (Ceiling)**")
+
+  st.markdown("---")
+
+  for task_name in active_tasks_list:
+    sc1, sc2, sc3, sc4, sc5 = st.columns([2, 1.2, 1.2, 1.5, 1.5])
+
+    sc1.markdown(f"**{task_name}**")
+
+    default_kpi = float(st.session_state.task_targets.get(task_name, 100.0))
+    kpi_input = sc2.number_input(
+        "KPI",
+        min_value=1.0,
+        value=default_kpi,
+        step=10.0,
+        key=f"smart_kpi_{task_name}",
+        label_visibility="collapsed",
+    )
+
+    plants_input = sc3.number_input(
+        "Plants",
+        min_value=1,
+        value=int(total_gh_plants),
+        step=100,
+        key=f"smart_plants_{task_name}",
+        label_visibility="collapsed",
+    )
+
+    # Math calculations
+    man_hours = plants_input / kpi_input if kpi_input > 0 else 0
+    exact_hc = (
+        man_hours / gh_crop_work_hrs_per_week
+        if gh_crop_work_hrs_per_week > 0
+        else 0
+    )
+    rec_hc = math.ceil(exact_hc)
+
+    sc4.markdown(f"`{exact_hc:.2f} workers`")
+    sc5.markdown(
+        f"<span style='color: #2D6A4F; font-weight: bold; font-size: 1.1rem;'>{rec_hc}"
+        " workers</span>",
+        unsafe_allow_html=True,
+    )
+
+    smart_calc_results[task_name] = {
+        "exact": exact_hc,
+        "recommended": rec_hc,
+        "man_hours": man_hours,
+    }
+
+  st.markdown("---")
+
+  # Grand Totals Calculation
+  total_crop_work_hours = sum(
+      res["man_hours"] for res in smart_calc_results.values()
+  )
+  total_recommended_staff = sum(
+      res["recommended"] for res in smart_calc_results.values()
+  )
+  total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
+  total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
+
+  st.subheader("📋 Grand Total Shift Hours Required")
+  gh_res1, gh_res2, gh_res3, gh_res4 = st.columns(4)
+  gh_res1.metric("Total Recommended Headcount", f"{total_recommended_staff} Workers")
+  gh_res2.metric("Total Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
+  gh_res3.metric("Total Paid Hours", f"{total_paid_hours:,.1f} hrs")
+  gh_res4.metric("Total Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
+
+  st.markdown("---")
+
+  # Sync Button
+  if st.button(
+      "🔄 Sync Headcounts to Weekly Roster Planner (Tab 1)", type="primary"
+  ):
+    for task_name, res in smart_calc_results.items():
+      st.session_state.active_tasks[task_name] = res["recommended"]
+    st.success(
+        "Successfully populated Tab 1 headcounts with the recommended values!"
+        " Switch to Tab 1 to view and edit them anytime."
+    )
+    st.rerun()
