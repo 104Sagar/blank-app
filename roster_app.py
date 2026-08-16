@@ -147,7 +147,6 @@ def load_and_sanitize_staff_data():
             
             modified = False
             for person in data:
-                # Ensure task_performance dictionary exists and covers all skills
                 if "task_performance" not in person:
                     person["task_performance"] = {}
                     modified = True
@@ -157,7 +156,6 @@ def load_and_sanitize_staff_data():
                         person["task_performance"][sk] = {"kpi": 100.0, "quality": "👍", "notes": ""}
                         modified = True
                 
-                # Clean up legacy notes if any exist in root
                 if person.get("notes") in LEGACY_NOTES_TO_REMOVE:
                     person["notes"] = ""
                     modified = True
@@ -217,7 +215,6 @@ with tab_planner:
                 if skill2 != "None": skills_arr.append(skill2)
                 if skill3 != "None": skills_arr.append(skill3)
                 
-                # Initialize task performance dictionary
                 t_perf = {sk: {"kpi": 100.0, "quality": "👍", "notes": ""} for sk in skills_arr}
                 
                 st.session_state.staff_db.append({
@@ -257,7 +254,6 @@ with tab_planner:
                         if up_skill3 != "None": new_s_arr.append(up_skill3)
                         
                         person["skills"] = new_s_arr
-                        # Ensure task_performance dictionary has entries for new skills while preserving old ones
                         if "task_performance" not in person:
                             person["task_performance"] = {}
                         for sk in new_s_arr:
@@ -371,24 +367,20 @@ with tab_planner:
 
     st.markdown("---")
 
-    # --- TASK-AWARE SMART ALLOCATION ENGINE ---
+    # --- TASK-AWARE SMART ALLOCATION ENGINE WITH FALLBACK ---
     available_pool = [s for s in st.session_state.staff_db if s["name"] not in absent_staff]
     cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
 
     allocated_roster = {task: [] for task in task_requirements}
-    unassigned_staff = []
 
-    # We iterate through required tasks and allocate staff based on who excels most in each specific task
+    # Pass 1: Strict matching based on skills & category
     for task_name, req_count in task_requirements.items():
-        # Find all available staff trained in this task
         candidates_for_task = []
         for person in available_pool:
             already_assigned_tasks = [t for t, mems in allocated_roster.items() if person in mems]
             if not already_assigned_tasks:
                 skills = person.get("skills", [])
-                # Check if trained in task, or if backup category (GG/TOTC) can take non-leading tasks
                 if task_name in skills or (not skills and person["category"] in ["GG", "TOTC"] and task_name != "Leading Hand"):
-                    # Get performance for this specific task
                     t_perf = person.get("task_performance", {}).get(task_name, {"kpi": 100.0, "quality": "👍", "notes": ""})
                     kpi_score = t_perf.get("kpi", 100.0)
                     qual_score = 0 if t_perf.get("quality", "👍") == "👍" else 1
@@ -401,19 +393,25 @@ with tab_planner:
                         "cat_rank": cat_rank
                     })
         
-        # Sort candidates for this specific task: higher KPI first, then quality thumbs up, then category priority
         candidates_for_task.sort(key=lambda x: (-x["kpi"], x["quality"], x["cat_rank"]))
         
-        # Assign up to req_count
         for cand in candidates_for_task:
             if len(allocated_roster[task_name]) < req_count:
                 allocated_roster[task_name].append(cand["person"])
 
-    # Catch any leftover available staff who haven't been assigned anywhere
+    # Pass 2 (Fallback): Allocate remaining unassigned staff to any task that is still short-staffed
     assigned_staff_flat = [m for mems in allocated_roster.values() for m in mems]
-    for person in available_pool:
-        if person not in assigned_staff_flat:
-            unassigned_staff.append(person)
+    unassigned_staff = [p for p in available_pool if p not in assigned_staff_flat]
+
+    if unassigned_staff:
+        for task_name, req_count in task_requirements.items():
+            while len(allocated_roster[task_name]) < req_count and unassigned_staff:
+                leftover_person = unassigned_staff.pop(0)
+                # Avoid assigning regular staff as Leading Hand in fallback unless necessary
+                if task_name == "Leading Hand" and leftover_person["category"] != "Leading Hand":
+                    # Try to find another task first if possible, or append anyway if no other choice
+                    pass
+                allocated_roster[task_name].append(leftover_person)
 
     # --- DISPLAY RESULTS & TWO COPY-PASTE LISTS ---
     st.subheader(f"📊 Labor Allocation Plan (Total Requested: {total_requested} Staff)")
@@ -425,7 +423,6 @@ with tab_planner:
         for task, members in allocated_roster.items():
             st.markdown(f"**{task} ({len(members)} / {task_requirements[task]})**")
             for m in members:
-                # Show specific note for this task if available
                 t_note = m.get('task_performance', {}).get(task, {}).get('notes', '')
                 note_str = f" (*{t_note}*)" if t_note else ""
                 st.write(f"- **{m['name']}** [{m['category']}]{note_str}")
@@ -503,7 +500,6 @@ with tab_kpi:
     target_val_for_task = st.session_state.task_targets.get(selected_task_to_eval, 100.0)
     st.info(f"🎯 Current Target KPI for **{selected_task_to_eval}**: **{target_val_for_task}** (You can modify target KPIs in the sidebar)")
     
-    # Filter staff trained in this selected task
     relevant_staff = [s for s in st.session_state.staff_db if selected_task_to_eval in s.get("skills", [])]
     
     if not relevant_staff:
@@ -518,14 +514,12 @@ with tab_kpi:
             
             st.markdown("---")
             
-            # Keep track of inputs
             form_inputs = {}
             for person in relevant_staff:
                 c1, c2, c3, c4 = st.columns([1.5, 1.2, 1, 1.5])
                 
                 c1.markdown(f"**{person['name']}** <br><small style='color:gray;'>{person['category']}</small>", unsafe_allow_html=True)
                 
-                # Retrieve existing score for this specific task
                 p_perf = person.get("task_performance", {}).get(selected_task_to_eval, {"kpi": 100.0, "quality": "👍", "notes": ""})
                 
                 kpi_in = c2.number_input("KPI", min_value=0.0, value=float(p_perf.get("kpi", 100.0)), step=5.0, key=f"kpi_{person['name']}_{selected_task_to_eval}", label_visibility="collapsed")
