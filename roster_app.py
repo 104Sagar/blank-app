@@ -579,24 +579,26 @@ if "calc_rows" not in st.session_state:
   st.session_state.calc_rows = 260
 if "calc_plants_per_row" not in st.session_state:
   st.session_state.calc_plants_per_row = 480
+if "calc_plants_per_sqm" not in st.session_state:
+  st.session_state.calc_plants_per_sqm = 2.6
 
 # Title
 st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
 
-# --- TAB ORDER ---
+# --- TAB ORDER (Smart Headcount & Shift Hours moved to 2nd position) ---
 (
     tab_planner,
+    tab_smart_calc,
     tab_old_calc,
     tab_kpi,
     tab_progress,
-    tab_smart_calc,
 ) = st.tabs([
     "📋 Roster & Copy Lists",
+    "📊 Smart Headcount & Shift Hours",
     "🧮 Advanced Workload & Overtime Status",
     "⭐ Weekly Task-Specific KPI & Quality Tracker",
     "📈 Staff Progress & Skills",
-    "📊 Smart Headcount & Shift Hours",
 ])
 
 # ==========================================
@@ -1085,425 +1087,7 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (UNIFIED SINGLE BOX)
-# ==========================================
-with tab_old_calc:
-  st.subheader("🧮 Advanced Workload & Overtime Status")
-
-  c_ctrl1, c_ctrl2 = st.columns(2)
-  with c_ctrl1:
-    remaining_days = st.slider(
-        "📅 Remaining Days in Week",
-        min_value=1.0,
-        max_value=5.0,
-        value=5.0,
-        step=0.5,
-        key="old_calc_rem_days",
-    )
-    max_allowed_hours = remaining_days * 8.0
-
-  with c_ctrl2:
-    st.markdown(
-        f"**Master Setup:** `{st.session_state.calc_rows} rows` ×"
-        f" `{st.session_state.calc_plants_per_row} density`"
-    )
-    st.markdown(f"**Standard base limit:** `{max_allowed_hours:.1f} Hrs`")
-
-  st.markdown("---")
-
-  # --- COMPACT METRICS BAR ---
-  gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
-  gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
-  gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
-
-  total_recommended_staff = sum(
-      int(count) for count in st.session_state.active_tasks.values()
-  )
-  active_crop_staff_total = sum(
-      int(count)
-      for t, count in st.session_state.active_tasks.items()
-      if t != "Leading Hand"
-  )
-  leading_hand_staff_count = int(
-      st.session_state.active_tasks.get("Leading Hand", 0)
-  )
-
-  total_crop_work_hours = (
-      active_crop_staff_total + leading_hand_staff_count
-  ) * gh_crop_work_hrs_per_week
-  total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
-  total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
-
-  m1, m2, m3, m4 = st.columns(4)
-  m1.metric("Total Headcount", f"{total_recommended_staff} Workers")
-  m2.metric("Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
-  m3.metric("Paid Hours", f"{total_paid_hours:,.1f} hrs")
-  m4.metric("Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
-
-  st.markdown("---")
-
-  shared_rows = st.session_state.calc_rows
-  shared_density = st.session_state.calc_plants_per_row
-
-  tasks_comparison_data = []
-
-  for task_name, staff_qty in st.session_state.active_tasks.items():
-    if task_name in ["Leading Hand", "Others"]:
-      continue
-
-    target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
-
-    if task_name not in st.session_state.saved_avg_kpis:
-      kpis_logged = []
-      for person in st.session_state.staff_db:
-        t_perf = person.get("task_performance", {})
-        if task_name in t_perf:
-          kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
-      default_logged_avg = (
-          sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
-      )
-      st.session_state.saved_avg_kpis[task_name] = default_logged_avg
-      curr_sets = load_settings()
-      curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
-      save_settings(curr_sets)
-
-    t_plants = shared_rows * shared_density
-    mh_target = t_plants / target_kpi if target_kpi > 0 else 0
-    dur_target = mh_target / staff_qty if staff_qty > 0 else 0
-
-    tasks_comparison_data.append({
-        "name": task_name,
-        "plants": t_plants,
-        "staff": staff_qty,
-        "target_kpi": target_kpi,
-        "mh_target": mh_target,
-        "dur_target": dur_target,
-    })
-
-  st.markdown("### 📋 Task Breakdowns & Overtime Summary")
-
-  # --- SINGLE UNIFIED HORIZONTAL CONTAINER FOR ALL TASKS ---
-  st.markdown(
-      """
-        <div style="background-color: #FFFFFF; padding: 16px 20px; border-radius: 14px; border: 1px solid #D5E3D8; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 15px;">
-        """,
-      unsafe_allow_html=True,
-  )
-
-  total_combined_avg_hours = 0.0
-  active_support_tasks = [
-      t
-      for t in ["Leading Hand", "Others"]
-      if t in st.session_state.active_tasks
-      and int(st.session_state.active_tasks[t]) > 0
-  ]
-  total_rows_count = len(tasks_comparison_data) + len(active_support_tasks)
-  current_row_idx = 0
-
-  for task in tasks_comparison_data:
-    current_row_idx += 1
-    input_key = f"unified_avg_kpi_{task['name']}"
-    if input_key not in st.session_state:
-      st.session_state[input_key] = float(
-          st.session_state.saved_avg_kpis.get(task["name"], 100.0)
-      )
-
-    def update_unified_kpi(t_name=task["name"], k=input_key):
-      val = float(st.session_state[k])
-      st.session_state.saved_avg_kpis[t_name] = val
-      curr_sets = load_settings()
-      curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
-      save_settings(curr_sets)
-
-    is_clip_shoot = "clip/shoot" in task["name"].lower()
-    is_shared = "lowering" in task["name"].lower()
-
-    if is_clip_shoot:
-      limit_ref = max_allowed_hours - ((9.0 / 5.0) * remaining_days)
-      limit_label = f"Max {limit_ref:.1f}h (Minus Poll.)"
-    elif is_shared:
-      limit_ref = 20.0
-      limit_label = "Max 20.0h (Shared)"
-    else:
-      limit_ref = max_allowed_hours
-      limit_label = f"Max {limit_ref:.1f}h"
-
-    c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
-        [2.2, 1.0, 1.3, 1.5, 1.8]
-    )
-
-    c_name.markdown(f"**{task['name']}**")
-    c_staff.markdown(f"👥 `{task['staff']} Staff`")
-
-    avg_kpi_val = c_kpi.number_input(
-        f"KPI {task['name']}",
-        min_value=1.0,
-        value=float(st.session_state[input_key]),
-        step=10.0,
-        key=input_key,
-        on_change=update_unified_kpi,
-        label_visibility="collapsed",
-    )
-    st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_val
-
-    mh_avg = task["plants"] / avg_kpi_val if avg_kpi_val > 0 else 0
-    dur_avg = mh_avg / task["staff"] if task["staff"] > 0 else 0
-    total_combined_avg_hours += mh_avg
-
-    c_hrs.markdown(
-        f"`{mh_avg:.1f} Man-Hrs` <br><small"
-        f" style='color:gray;'>({dur_avg:.1f}h/worker)</small>",
-        unsafe_allow_html=True,
-    )
-
-    if dur_avg > limit_ref:
-      c_status.markdown(
-          f"<span style='color: #D32F2F; font-weight:600;'>⚠️ Exceeds"
-          f" ({limit_label})</span>",
-          unsafe_allow_html=True,
-      )
-    else:
-      buffer_h = limit_ref - dur_avg
-      c_status.markdown(
-          f"<span style='color: #1E7E34; font-weight:600;'>✅ On Track"
-          f" ({buffer_h:.1f}h buf)</span>",
-          unsafe_allow_html=True,
-      )
-
-    if current_row_idx < total_rows_count:
-      st.markdown(
-          "<hr style='margin: 8px 0; border: 0; border-top: 1px solid"
-          " #EAEFEA;'>",
-          unsafe_allow_html=True,
-      )
-
-  # --- SUPPORT TASKS (LEADING HAND & OTHERS) ---
-  for task_name in active_support_tasks:
-    current_row_idx += 1
-    staff_qty = int(st.session_state.active_tasks[task_name])
-    hours_per_worker = remaining_days * (gh_crop_work_hrs_per_week / 5.0)
-    total_task_mh = staff_qty * hours_per_worker
-    total_combined_avg_hours += total_task_mh
-
-    c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
-        [2.2, 1.0, 1.3, 1.5, 1.8]
-    )
-    c_name.markdown(f"**{task_name}**")
-    c_staff.markdown(f"👥 `{staff_qty} Staff`")
-    c_kpi.markdown(
-        "<small style='color:gray;'>Fixed Role</small>",
-        unsafe_allow_html=True,
-    )
-    c_hrs.markdown(
-        f"`{total_task_mh:.1f} Man-Hrs` <br><small"
-        f" style='color:gray;'>({hours_per_worker:.1f}h/worker)</small>",
-        unsafe_allow_html=True,
-    )
-    c_status.markdown(
-        "<span style='color: #1E7E34; font-weight:600;'>✅ Scheduled</span>",
-        unsafe_allow_html=True,
-    )
-
-    if current_row_idx < total_rows_count:
-      st.markdown(
-          "<hr style='margin: 8px 0; border: 0; border-top: 1px solid"
-          " #EAEFEA;'>",
-          unsafe_allow_html=True,
-      )
-
-  st.markdown("</div>", unsafe_allow_html=True)
-
-  # --- TOTAL COMBINED HOURS & COFFEE BREAK SUMMARY ---
-  coffee_break_hours = total_recommended_staff * 0.25 * remaining_days
-  final_grand_total = total_combined_avg_hours + coffee_break_hours
-
-  st.markdown(
-      f"""
-        <div style="background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%); padding: 15px 20px; border-radius: 12px; color: #FFFFFF; box-shadow: 0 4px 12px rgba(27,47,33,0.1); margin-top: 15px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <h4 style="margin: 0 0 4px 0; color: #FFFFFF; font-size: 1.1rem;">📊 Summary Totals</h4>
-                    <p style="margin: 0; font-size: 0.95rem; color: #E8F0EA;">
-                        Regular Tasks + Support Roles: <b>{total_combined_avg_hours:,.1f} Man-Hrs</b> &nbsp;|&nbsp; 
-                        Paid Coffee Breaks ({total_recommended_staff} staff × 0.25h × {remaining_days}d): <b>{coffee_break_hours:,.2f} Man-Hrs</b>
-                    </p>
-                </div>
-                <div style="text-align: right; margin-top: 5px;">
-                    <span style="font-size: 0.9rem; color: #A3E4D7; display: block;">GRAND TOTAL</span>
-                    <span style="font-size: 1.35rem; font-weight: bold; color: #FFFFFF;">{final_grand_total:,.2f} Man-Hours</span>
-                </div>
-            </div>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
-
-
-# ==========================================
-# TAB 3: WEEKLY TASK-SPECIFIC KPI TRACKER
-# ==========================================
-with tab_kpi:
-  st.subheader("⭐ Weekly Task-Specific KPI & Quality Evaluation")
-  st.markdown(
-      "Set individual KPI scores and quality ratings **per task** for each team"
-      " member below."
-  )
-
-  kpi_tasks_list = [
-      t for t in st.session_state.skills_list if t != "Leading Hand"
-  ]
-
-  selected_task_to_eval = st.selectbox(
-      "Select Task to Evaluate / Update:",
-      options=kpi_tasks_list,
-      key="eval_task_select",
-  )
-  target_val_for_task = st.session_state.task_targets.get(
-      selected_task_to_eval, 100.0
-  )
-  st.info(
-      f"🎯 Current Target KPI for **{selected_task_to_eval}**:"
-      f" **{target_val_for_task}** (Adjustable in the sidebar)"
-  )
-
-  relevant_staff = [
-      s
-      for s in st.session_state.staff_db
-      if selected_task_to_eval in s.get("skills", [])
-  ]
-
-  if not relevant_staff:
-    st.warning(
-        f"No staff currently trained in {selected_task_to_eval}. Go to sidebar"
-        " 'Update / Train Staff Skills' to assign this skill."
-    )
-  else:
-    with st.form(f"kpi_form_{selected_task_to_eval}"):
-      h1, h2, h3, h4 = st.columns([1.5, 1.2, 1, 1.5])
-      h1.markdown("**Staff Name**")
-      h2.markdown(f"**KPI Score (Target: {target_val_for_task})**")
-      h3.markdown("**Quality**")
-      h4.markdown("**Task Notes / Excellence**")
-
-      st.markdown("---")
-
-      form_inputs = {}
-      for person in relevant_staff:
-        c1, c2, c3, c4 = st.columns([1.5, 1.2, 1, 1.5])
-
-        c1.markdown(
-            f"**{person['name']}** <br><small"
-            f" style='color:gray;'>{person['category']}</small>",
-            unsafe_allow_html=True,
-        )
-
-        p_perf = person.get("task_performance", {}).get(
-            selected_task_to_eval,
-            {"kpi": target_val_for_task, "quality": "👍", "notes": ""},
-        )
-
-        kpi_in = c2.number_input(
-            "KPI",
-            min_value=0.0,
-            value=float(p_perf.get("kpi", target_val_for_task)),
-            step=1.0,
-            key=f"kpi_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-        )
-        qual_in = c3.selectbox(
-            "Quality",
-            ["👍", "👎"],
-            index=0 if p_perf.get("quality", "👍") == "👍" else 1,
-            key=f"qual_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-        )
-        note_in = c4.text_input(
-            "Notes",
-            value=p_perf.get("notes", ""),
-            key=f"note_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-            placeholder="e.g. Excellent speed",
-        )
-
-        form_inputs[person["name"]] = {
-            "kpi": kpi_in,
-            "quality": qual_in,
-            "notes": note_in,
-        }
-
-      submit_task_kpi = st.form_submit_button(
-          f"💾 Save Ratings for {selected_task_to_eval}", type="primary"
-      )
-      if submit_task_kpi:
-        for person in st.session_state.staff_db:
-          name = person["name"]
-          if name in form_inputs:
-            if "task_performance" not in person:
-              person["task_performance"] = {}
-            person["task_performance"][selected_task_to_eval] = form_inputs[name]
-
-        save_staff_data(st.session_state.staff_db)
-        st.success(
-            f"Successfully updated KPI and Quality ratings for"
-            f" {selected_task_to_eval}!"
-        )
-        st.rerun()
-
-
-# ==========================================
-# TAB 4: STAFF PROGRESS & SKILLS DIRECTORY
-# ==========================================
-with tab_progress:
-  st.subheader("📈 Staff Skills Directory & Progress Overview")
-  st.markdown(
-      "Comprehensive view of all team members, certified skills, and performance"
-      " records."
-  )
-
-  search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
-
-  for person in st.session_state.staff_db:
-    if not search_query or search_query.lower() in person["name"].lower():
-      with st.expander(
-          f"👤 **{person['name']}** — Category: `{person['category']}`"
-      ):
-        col_p1, col_p2 = st.columns([1, 1.5])
-
-        with col_p1:
-          st.markdown(
-              "##### 🛠️ Certified Skills (Primary $\rightarrow$ Secondary"
-              " $\rightarrow$ Tertiary)"
-          )
-          skills = person.get("skills", [])
-          if skills:
-            for idx, sk in enumerate(skills):
-              tier_label = (
-                  ["Primary", "Secondary", "Tertiary"][idx]
-                  if idx < 3
-                  else "Extra"
-              )
-              st.markdown(f"- ✅ **{tier_label}:** {sk}")
-          else:
-            st.markdown("_No skills assigned_")
-
-        with col_p2:
-          st.markdown("##### 📊 Task Progress & KPI Records")
-          task_perf = person.get("task_performance", {})
-          if task_perf:
-            for t_name, metrics in task_perf.items():
-              kpi = metrics.get("kpi", 100.0)
-              qual = metrics.get("quality", "👍")
-              notes = metrics.get("notes", "")
-              note_text = f" | _Note: {notes}_" if notes else ""
-              st.markdown(
-                  f"- **{t_name}**: KPI **{kpi}** | Quality: {qual}{note_text}"
-              )
-          else:
-            st.markdown("_No KPI records logged yet_")
-
-
-# ==========================================
-# TAB 5: SMART HEADCOUNT & SHIFT HOURS (Last Tab)
+# TAB 2: SMART HEADCOUNT & SHIFT HOURS (Moved from Tab 5 to Tab 2)
 # ==========================================
 with tab_smart_calc:
   st.subheader("📊 Smart Headcount & Shift Hours Calculator")
@@ -1512,7 +1096,7 @@ with tab_smart_calc:
       " headcounts below."
   )
 
-  c_dim1, c_dim2 = st.columns(2)
+  c_dim1, c_dim2, c_dim3 = st.columns(3)
   with c_dim1:
     st.session_state.calc_rows = st.number_input(
         "Master Total Rows",
@@ -1529,22 +1113,34 @@ with tab_smart_calc:
         step=10,
         key="smart_ppr_input",
     )
+  with c_dim3:
+    st.session_state.calc_plants_per_sqm = st.number_input(
+        "Plant Density (plants / m²)",
+        min_value=0.1,
+        value=float(st.session_state.calc_plants_per_sqm),
+        step=0.1,
+        format="%.2f",
+        key="smart_sqm_input",
+    )
 
   total_gh_plants = (
       st.session_state.calc_rows * st.session_state.calc_plants_per_row
   )
+  gh_area_sqm = (
+      total_gh_plants / st.session_state.calc_plants_per_sqm
+      if st.session_state.calc_plants_per_sqm > 0
+      else 0
+  )
   st.info(
       f"🌱 **Total Glasshouse Plant Count:** **{total_gh_plants:,.0f}"
       f" plants** ({st.session_state.calc_rows} rows ×"
-      f" {st.session_state.calc_plants_per_row} plants/row)"
+      f" {st.session_state.calc_plants_per_row} plants/row) &nbsp;|&nbsp; 📐"
+      f" **Estimated Area:** **{gh_area_sqm:,.1f} m²**"
   )
 
   st.markdown("---")
 
   gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
-  gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
-  gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
-
   active_tasks_list = list(st.session_state.active_tasks.keys())
 
   # ==========================================
@@ -1565,7 +1161,6 @@ with tab_smart_calc:
   total_avg_rec_hc = 0
   total_avg_mh = 0.0
 
-  # First pass to compute Clip/Shoot average recommended headcount
   clip_shoot_avg_rec = 0
   for task_name in active_tasks_list:
     if task_name == "Clip/Shoot & Pollination":
@@ -1712,7 +1307,6 @@ with tab_smart_calc:
   total_target_rec_hc = 0
   total_target_mh = 0.0
 
-  # First pass to compute Clip/Shoot target recommended headcount
   clip_shoot_target_rec = 0
   for task_name in active_tasks_list:
     if task_name == "Clip/Shoot & Pollination":
@@ -1857,7 +1451,7 @@ with tab_smart_calc:
   ):
     for task_name, res in avg_kpi_calc_results.items():
       if task_name == "Clip/Shoot & Pollination":
-        rec_val = 12  # Combined total for clip/shoot and pollination together as 12
+        rec_val = 12
       else:
         rec_val = int(res["recommended"])
       st.session_state.active_tasks[task_name] = rec_val
@@ -1872,3 +1466,417 @@ with tab_smart_calc:
         " recommended values (Clip/Shoot & Pollination set to 12)!"
     )
     st.rerun()
+
+
+# ==========================================
+# TAB 3: ADVANCED WORKLOAD & OVERTIME STATUS
+# ==========================================
+with tab_old_calc:
+  st.subheader("🧮 Advanced Workload & Overtime Status")
+
+  c_ctrl1, c_ctrl2 = st.columns(2)
+  with c_ctrl1:
+    remaining_days = st.slider(
+        "📅 Remaining Days in Week",
+        min_value=1.0,
+        max_value=5.0,
+        value=5.0,
+        step=0.5,
+        key="old_calc_rem_days",
+    )
+    max_allowed_hours = remaining_days * 8.0
+
+  with c_ctrl2:
+    st.markdown(
+        f"**Master Setup:** `{st.session_state.calc_rows} rows` ×"
+        f" `{st.session_state.calc_plants_per_row} density`"
+    )
+    st.markdown(f"**Standard base limit:** `{max_allowed_hours:.1f} Hrs`")
+
+  st.markdown("---")
+
+  gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
+  gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
+  gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
+
+  total_recommended_staff = sum(
+      int(count) for count in st.session_state.active_tasks.values()
+  )
+  active_crop_staff_total = sum(
+      int(count)
+      for t, count in st.session_state.active_tasks.items()
+      if t != "Leading Hand"
+  )
+  leading_hand_staff_count = int(
+      st.session_state.active_tasks.get("Leading Hand", 0)
+  )
+
+  total_crop_work_hours = (
+      active_crop_staff_total + leading_hand_staff_count
+  ) * gh_crop_work_hrs_per_week
+  total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
+  total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
+
+  m1, m2, m3, m4 = st.columns(4)
+  m1.metric("Total Headcount", f"{total_recommended_staff} Workers")
+  m2.metric("Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
+  m3.metric("Paid Hours", f"{total_paid_hours:,.1f} hrs")
+  m4.metric("Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
+
+  st.markdown("---")
+
+  shared_rows = st.session_state.calc_rows
+  shared_density = st.session_state.calc_plants_per_row
+
+  tasks_comparison_data = []
+
+  for task_name, staff_qty in st.session_state.active_tasks.items():
+    if task_name in ["Leading Hand", "Others"]:
+      continue
+
+    target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
+
+    if task_name not in st.session_state.saved_avg_kpis:
+      kpis_logged = []
+      for person in st.session_state.staff_db:
+        t_perf = person.get("task_performance", {})
+        if task_name in t_perf:
+          kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
+      default_logged_avg = (
+          sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
+      )
+      st.session_state.saved_avg_kpis[task_name] = default_logged_avg
+      curr_sets = load_settings()
+      curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
+      save_settings(curr_sets)
+
+    t_plants = shared_rows * shared_density
+    mh_target = t_plants / target_kpi if target_kpi > 0 else 0
+    dur_target = mh_target / staff_qty if staff_qty > 0 else 0
+
+    tasks_comparison_data.append({
+        "name": task_name,
+        "plants": t_plants,
+        "staff": staff_qty,
+        "target_kpi": target_kpi,
+        "mh_target": mh_target,
+        "dur_target": dur_target,
+    })
+
+  st.markdown("### 📋 Task Breakdowns & Overtime Summary")
+
+  st.markdown(
+      """
+        <div style="background-color: #FFFFFF; padding: 16px 20px; border-radius: 14px; border: 1px solid #D5E3D8; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 15px;">
+        """,
+      unsafe_allow_html=True,
+  )
+
+  total_combined_avg_hours = 0.0
+  active_support_tasks = [
+      t
+      for t in ["Leading Hand", "Others"]
+      if t in st.session_state.active_tasks
+      and int(st.session_state.active_tasks[t]) > 0
+  ]
+  total_rows_count = len(tasks_comparison_data) + len(active_support_tasks)
+  current_row_idx = 0
+
+  for task in tasks_comparison_data:
+    current_row_idx += 1
+    input_key = f"unified_avg_kpi_{task['name']}"
+    if input_key not in st.session_state:
+      st.session_state[input_key] = float(
+          st.session_state.saved_avg_kpis.get(task["name"], 100.0)
+      )
+
+    def update_unified_kpi(t_name=task["name"], k=input_key):
+      val = float(st.session_state[k])
+      st.session_state.saved_avg_kpis[t_name] = val
+      curr_sets = load_settings()
+      curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
+      save_settings(curr_sets)
+
+    is_clip_shoot = "clip/shoot" in task["name"].lower()
+    is_shared = "lowering" in task["name"].lower()
+
+    if is_clip_shoot:
+      limit_ref = max_allowed_hours - ((9.0 / 5.0) * remaining_days)
+      limit_label = f"Max {limit_ref:.1f}h (Minus Poll.)"
+    elif is_shared:
+      limit_ref = 20.0
+      limit_label = "Max 20.0h (Shared)"
+    else:
+      limit_ref = max_allowed_hours
+      limit_label = f"Max {limit_ref:.1f}h"
+
+    c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
+        [2.2, 1.0, 1.3, 1.5, 1.8]
+    )
+
+    c_name.markdown(f"**{task['name']}**")
+    c_staff.markdown(f"👥 `{task['staff']} Staff`")
+
+    avg_kpi_val = c_kpi.number_input(
+        f"KPI {task['name']}",
+        min_value=1.0,
+        value=float(st.session_state[input_key]),
+        step=10.0,
+        key=input_key,
+        on_change=update_unified_kpi,
+        label_visibility="collapsed",
+    )
+    st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_val
+
+    mh_avg = task["plants"] / avg_kpi_val if avg_kpi_val > 0 else 0
+    dur_avg = mh_avg / task["staff"] if task["staff"] > 0 else 0
+    total_combined_avg_hours += mh_avg
+
+    c_hrs.markdown(
+        f"`{mh_avg:.1f} Man-Hrs` <br><small"
+        f" style='color:gray;'>({dur_avg:.1f}h/worker)</small>",
+        unsafe_allow_html=True,
+    )
+
+    if dur_avg > limit_ref:
+      c_status.markdown(
+          f"<span style='color: #D32F2F; font-weight:600;'>⚠️ Exceeds"
+          f" ({limit_label})</span>",
+          unsafe_allow_html=True,
+      )
+    else:
+      buffer_h = limit_ref - dur_avg
+      c_status.markdown(
+          f"<span style='color: #1E7E34; font-weight:600;'>✅ On Track"
+          f" ({buffer_h:.1f}h buf)</span>",
+          unsafe_allow_html=True,
+      )
+
+    if current_row_idx < total_rows_count:
+      st.markdown(
+          "<hr style='margin: 8px 0; border: 0; border-top: 1px solid"
+          " #EAEFEA;'>",
+          unsafe_allow_html=True,
+      )
+
+  for task_name in active_support_tasks:
+    current_row_idx += 1
+    staff_qty = int(st.session_state.active_tasks[task_name])
+    hours_per_worker = remaining_days * (gh_crop_work_hrs_per_week / 5.0)
+    total_task_mh = staff_qty * hours_per_worker
+    total_combined_avg_hours += total_task_mh
+
+    c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
+        [2.2, 1.0, 1.3, 1.5, 1.8]
+    )
+    c_name.markdown(f"**{task_name}**")
+    c_staff.markdown(f"👥 `{staff_qty} Staff`")
+    c_kpi.markdown(
+        "<small style='color:gray;'>Fixed Role</small>",
+        unsafe_allow_html=True,
+    )
+    c_hrs.markdown(
+        f"`{total_task_mh:.1f} Man-Hrs` <br><small"
+        f" style='color:gray;'>({hours_per_worker:.1f}h/worker)</small>",
+        unsafe_allow_html=True,
+    )
+    c_status.markdown(
+        "<span style='color: #1E7E34; font-weight:600;'>✅ Scheduled</span>",
+        unsafe_allow_html=True,
+    )
+
+    if current_row_idx < total_rows_count:
+      st.markdown(
+          "<hr style='margin: 8px 0; border: 0; border-top: 1px solid"
+          " #EAEFEA;'>",
+          unsafe_allow_html=True,
+      )
+
+  st.markdown("</div>", unsafe_allow_html=True)
+
+  coffee_break_hours = total_recommended_staff * 0.25 * remaining_days
+  final_grand_total = total_combined_avg_hours + coffee_break_hours
+
+  st.markdown(
+      f"""
+        <div style="background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%); padding: 15px 20px; border-radius: 12px; color: #FFFFFF; box-shadow: 0 4px 12px rgba(27,47,33,0.1); margin-top: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <h4 style="margin: 0 0 4px 0; color: #FFFFFF; font-size: 1.1rem;">📊 Summary Totals</h4>
+                    <p style="margin: 0; font-size: 0.95rem; color: #E8F0EA;">
+                        Regular Tasks + Support Roles: <b>{total_combined_avg_hours:,.1f} Man-Hrs</b> &nbsp;|&nbsp; 
+                        Paid Coffee Breaks ({total_recommended_staff} staff × 0.25h × {remaining_days}d): <b>{coffee_break_hours:,.2f} Man-Hrs</b>
+                    </p>
+                </div>
+                <div style="text-align: right; margin-top: 5px;">
+                    <span style="font-size: 0.9rem; color: #A3E4D7; display: block;">GRAND TOTAL</span>
+                    <span style="font-size: 1.35rem; font-weight: bold; color: #FFFFFF;">{final_grand_total:,.2f} Man-Hours</span>
+                </div>
+            </div>
+        </div>
+        """,
+      unsafe_allow_html=True,
+  )
+
+
+# ==========================================
+# TAB 4: WEEKLY TASK-SPECIFIC KPI TRACKER
+# ==========================================
+with tab_kpi:
+  st.subheader("⭐ Weekly Task-Specific KPI & Quality Evaluation")
+  st.markdown(
+      "Set individual KPI scores and quality ratings **per task** for each team"
+      " member below."
+  )
+
+  kpi_tasks_list = [
+      t for t in st.session_state.skills_list if t != "Leading Hand"
+  ]
+
+  selected_task_to_eval = st.selectbox(
+      "Select Task to Evaluate / Update:",
+      options=kpi_tasks_list,
+      key="eval_task_select",
+  )
+  target_val_for_task = st.session_state.task_targets.get(
+      selected_task_to_eval, 100.0
+  )
+  st.info(
+      f"🎯 Current Target KPI for **{selected_task_to_eval}**:"
+      f" **{target_val_for_task}** (Adjustable in the sidebar)"
+  )
+
+  relevant_staff = [
+      s
+      for s in st.session_state.staff_db
+      if selected_task_to_eval in s.get("skills", [])
+  ]
+
+  if not relevant_staff:
+    st.warning(
+        f"No staff currently trained in {selected_task_to_eval}. Go to sidebar"
+        " 'Update / Train Staff Skills' to assign this skill."
+    )
+  else:
+    with st.form(f"kpi_form_{selected_task_to_eval}"):
+      h1, h2, h3, h4 = st.columns([1.5, 1.2, 1, 1.5])
+      h1.markdown("**Staff Name**")
+      h2.markdown(f"**KPI Score (Target: {target_val_for_task})**")
+      h3.markdown("**Quality**")
+      h4.markdown("**Task Notes / Excellence**")
+
+      st.markdown("---")
+
+      form_inputs = {}
+      for person in relevant_staff:
+        c1, c2, c3, c4 = st.columns([1.5, 1.2, 1, 1.5])
+
+        c1.markdown(
+            f"**{person['name']}** <br><small"
+            f" style='color:gray;'>{person['category']}</small>",
+            unsafe_allow_html=True,
+        )
+
+        p_perf = person.get("task_performance", {}).get(
+            selected_task_to_eval,
+            {"kpi": target_val_for_task, "quality": "👍", "notes": ""},
+        )
+
+        kpi_in = c2.number_input(
+            "KPI",
+            min_value=0.0,
+            value=float(p_perf.get("kpi", target_val_for_task)),
+            step=1.0,
+            key=f"kpi_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+        )
+        qual_in = c3.selectbox(
+            "Quality",
+            ["👍", "👎"],
+            index=0 if p_perf.get("quality", "👍") == "👍" else 1,
+            key=f"qual_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+        )
+        note_in = c4.text_input(
+            "Notes",
+            value=p_perf.get("notes", ""),
+            key=f"note_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+            placeholder="e.g. Excellent speed",
+        )
+
+        form_inputs[person["name"]] = {
+            "kpi": kpi_in,
+            "quality": qual_in,
+            "notes": note_in,
+        }
+
+      submit_task_kpi = st.form_submit_button(
+          f"💾 Save Ratings for {selected_task_to_eval}", type="primary"
+      )
+      if submit_task_kpi:
+        for person in st.session_state.staff_db:
+          name = person["name"]
+          if name in form_inputs:
+            if "task_performance" not in person:
+              person["task_performance"] = {}
+            person["task_performance"][selected_task_to_eval] = form_inputs[name]
+
+        save_staff_data(st.session_state.staff_db)
+        st.success(
+            f"Successfully updated KPI and Quality ratings for"
+            f" {selected_task_to_eval}!"
+        )
+        st.rerun()
+
+
+# ==========================================
+# TAB 5: STAFF PROGRESS & SKILLS DIRECTORY
+# ==========================================
+with tab_progress:
+  st.subheader("📈 Staff Skills Directory & Progress Overview")
+  st.markdown(
+      "Comprehensive view of all team members, certified skills, and performance"
+      " records."
+  )
+
+  search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
+
+  for person in st.session_state.staff_db:
+    if not search_query or search_query.lower() in person["name"].lower():
+      with st.expander(
+          f"👤 **{person['name']}** — Category: `{person['category']}`"
+      ):
+        col_p1, col_p2 = st.columns([1, 1.5])
+
+        with col_p1:
+          st.markdown(
+              "##### 🛠️ Certified Skills (Primary $\rightarrow$ Secondary"
+              " $\rightarrow$ Tertiary)"
+          )
+          skills = person.get("skills", [])
+          if skills:
+            for idx, sk in enumerate(skills):
+              tier_label = (
+                  ["Primary", "Secondary", "Tertiary"][idx]
+                  if idx < 3
+                  else "Extra"
+              )
+              st.markdown(f"- ✅ **{tier_label}:** {sk}")
+          else:
+            st.markdown("_No skills assigned_")
+
+        with col_p2:
+          st.markdown("##### 📊 Task Progress & KPI Records")
+          task_perf = person.get("task_performance", {})
+          if task_perf:
+            for t_name, metrics in task_perf.items():
+              kpi = metrics.get("kpi", 100.0)
+              qual = metrics.get("quality", "👍")
+              notes = metrics.get("notes", "")
+              note_text = f" | _Note: {notes}_" if notes else ""
+              st.markdown(
+                  f"- **{t_name}**: KPI **{kpi}** | Quality: {qual}{note_text}"
+              )
+          else:
+            st.markdown("_No KPI records logged yet_")
