@@ -88,20 +88,20 @@ st.markdown(
     /* Task Card Standard Style for Workload Calculator */
     .task-card-normal {
         background-color: #FFFFFF;
-        padding: 15px;
+        padding: 12px 15px;
         border-radius: 12px;
         border: 1px solid #D5E3D8;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
     
     /* Task Card Overtime/Alert Style */
     .task-card-alert {
         background-color: #FFF0F2;
-        padding: 15px;
+        padding: 12px 15px;
         border-radius: 12px;
         border: 2px solid #FFC1CC;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
     </style>
@@ -1018,16 +1018,13 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (With Interactive Average KPI Inputs)
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (Streamlined & Clean Cards)
 # ==========================================
 with tab_old_calc:
-  st.subheader(
-      "🧮 Advanced Workload & Overtime Status: Target KPI vs. Average KPI"
-  )
+  st.subheader("🧮 Advanced Workload & Overtime Status")
   st.markdown(
-      "Generates two separate, complete Task Breakdowns & Overtime Status views:"
-      " one using your **Target KPIs** and one using your interactive **Average"
-      " KPIs**."
+      f"**Active Master Inputs:** `{st.session_state.calc_rows} rows` ×"
+      f" `{st.session_state.calc_plants_per_row} density`"
   )
   st.markdown("---")
 
@@ -1063,7 +1060,6 @@ with tab_old_calc:
 
     target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
 
-    # Compute default actual average KPI from Tab 2 staff records for this task
     kpis_logged = []
     for person in st.session_state.staff_db:
       t_perf = person.get("task_performance", {})
@@ -1090,36 +1086,7 @@ with tab_old_calc:
         "default_avg_kpi": default_logged_avg,
     })
 
-  # Aggregates for Target
-  crop_mh_target = sum(t["mh_target"] for t in tasks_comparison_data)
-
-  unique_staff_total = sum(
-      t["staff"]
-      for t in tasks_comparison_data
-      if "truss support" not in t["name"].lower()
-  )
-  clip_shoot_staff = next(
-      (
-          t["staff"]
-          for t in tasks_comparison_data
-          if "clip/shoot" in t["name"].lower()
-      ),
-      12,
-  )
-
-  pollination_loss_person = (9.0 / 5.0) * remaining_days
-  pollination_loss_total = clip_shoot_staff * pollination_loss_person
-
-  grand_mh_target = crop_mh_target + pollination_loss_total
-  avg_hrs_person_target = (
-      grand_mh_target / unique_staff_total if unique_staff_total > 0 else 0.0
-  )
-
-  st.markdown("---")
-  st.subheader(
-      "📝 Detailed Task Breakdowns & Overtime Status: Target KPI vs. Average"
-      " KPI"
-  )
+  st.subheader("📝 Task Breakdowns & Overtime Status")
 
   for task in tasks_comparison_data:
     st.markdown(f"#### 📋 {task['name']} (Staff Assigned: {task['staff']})")
@@ -1132,45 +1099,43 @@ with tab_old_calc:
     )
 
     if is_clip_shoot:
-      limit_ref = max_allowed_hours - pollination_loss_person
-      limit_text = f"Remaining Limit minus Pollination ({limit_ref:.1f} Hrs Max)"
+      limit_ref = max_allowed_hours - ((9.0 / 5.0) * remaining_days)
+      limit_text = f"Max {limit_ref:.1f} Hrs (Minus Pollination)"
     elif is_shared:
       limit_ref = 20.0
-      limit_text = "Shared Shift Limit (20.0 Hrs Max)"
+      limit_text = "Max 20.0 Hrs (Shared Shift Limit)"
     else:
       limit_ref = max_allowed_hours
-      limit_text = f"Remaining Days Limit ({limit_ref:.1f} Hrs Max)"
+      limit_text = f"Max {limit_ref:.1f} Hrs"
 
-    # Target KPI View
+    # --- Target KPI Card ---
     with tc1:
       is_ot_target = task["dur_target"] > limit_ref
       card_cls = "task-card-alert" if is_ot_target else "task-card-normal"
       if is_ot_target:
-        status_target = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds Limit ({task['dur_target']:.1f} / {limit_ref:.1f} Hours)</span>"
+        status_target = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds ({task['dur_target']:.1f} / {limit_ref:.1f}h)</span>"
       else:
         left_t = limit_ref - task["dur_target"]
-        status_target = f"<span style='color: #1E7E34; font-weight: bold;'>✅ On Track ({left_t:.1f} Hours Within Budget)</span>"
+        status_target = f"<span style='color: #1E7E34; font-weight: bold;'>✅ On Track ({left_t:.1f}h Buffer)</span>"
 
       st.markdown(
           f"""
             <div class="{card_cls}">
-                <p style="margin-bottom:6px; font-weight:bold; color:#2D6A4F; font-size:1.05rem;">🎯 Target KPI View</p>
-                <p style="margin-bottom:5px;"><b>Inputs:</b> {task['rows']} rows × {task['density']} density | <b>Target KPI:</b> {task['target_kpi']}</p>
-                <p style="margin-bottom:5px;"><b>Workload:</b> {task['mh_target']:.1f} Man-Hours</p>
-                <p style="margin-bottom:5px;"><b>Required Clock Time:</b> {task['dur_target']:.1f} Hours</p>
-                <hr style="margin: 8px 0; border: 0; border-top: 1px solid #D0D0D0;">
-                <p style="margin-bottom: 5px;"><b>Target parameters:</b> {limit_text}</p>
-                <p style="margin-bottom: 0px;"><b>Weekly Status:</b> {status_target}</p>
+                <p style="margin-bottom:4px; font-weight:bold; color:#2D6A4F; font-size:1rem;">🎯 Target KPI View (KPI: {task['target_kpi']})</p>
+                <p style="margin-bottom:4px;"><b>Workload:</b> {task['mh_target']:.1f} Man-Hrs &nbsp;|&nbsp; <b>Clock Time:</b> {task['dur_target']:.1f} Hrs</p>
+                <hr style="margin: 6px 0; border: 0; border-top: 1px solid #D0D0D0;">
+                <p style="margin-bottom:2px;"><small><b>Limit:</b> {limit_text}</small></p>
+                <p style="margin-bottom:0px;"><b>Status:</b> {status_target}</p>
             </div>
             """,
           unsafe_allow_html=True,
       )
 
-    # Average KPI View with interactive input inside box
+    # --- Average KPI Card ---
     with tc2:
       st.markdown(
           "<p style='margin-bottom:2px; font-weight:bold; color:#1B4332;"
-          " font-size:1.05rem;'>⭐ Average KPI View</p>",
+          " font-size:1rem;'>⭐ Average KPI View</p>",
           unsafe_allow_html=True,
       )
       avg_kpi_user = st.number_input(
@@ -1183,6 +1148,7 @@ with tab_old_calc:
           ),
           step=10.0,
           key=f"adv_avg_kpi_input_{task['name']}",
+          label_visibility="collapsed",
       )
 
       mh_avg = task["plants"] / avg_kpi_user if avg_kpi_user > 0 else 0
@@ -1191,20 +1157,18 @@ with tab_old_calc:
       is_ot_avg = dur_avg > limit_ref
       card_cls2 = "task-card-alert" if is_ot_avg else "task-card-normal"
       if is_ot_avg:
-        status_avg = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds Limit ({dur_avg:.1f} / {limit_ref:.1f} Hours)</span>"
+        status_avg = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds ({dur_avg:.1f} / {limit_ref:.1f}h)</span>"
       else:
         left_a = limit_ref - dur_avg
-        status_avg = f"<span style='color: #1E7E34; font-weight: bold;'>✅ On Track ({left_a:.1f} Hours Within Budget)</span>"
+        status_avg = f"<span style='color: #1E7E34; font-weight: bold;'>✅ On Track ({left_a:.1f}h Buffer)</span>"
 
       st.markdown(
           f"""
             <div class="{card_cls2}">
-                <p style="margin-bottom:5px;"><b>Inputs:</b> {task['rows']} rows × {task['density']} density | <b>Average KPI:</b> {avg_kpi_user:.1f}</p>
-                <p style="margin-bottom:5px;"><b>Workload:</b> {mh_avg:.1f} Man-Hours</p>
-                <p style="margin-bottom:5px;"><b>Required Clock Time:</b> {dur_avg:.1f} Hours</p>
-                <hr style="margin: 8px 0; border: 0; border-top: 1px solid #D0D0D0;">
-                <p style="margin-bottom: 5px;"><b>Target parameters:</b> {limit_text}</p>
-                <p style="margin-bottom: 0px;"><b>Weekly Status:</b> {status_avg}</p>
+                <p style="margin-bottom:4px;"><b>Workload:</b> {mh_avg:.1f} Man-Hrs &nbsp;|&nbsp; <b>Clock Time:</b> {dur_avg:.1f} Hrs</p>
+                <hr style="margin: 6px 0; border: 0; border-top: 1px solid #D0D0D0;">
+                <p style="margin-bottom:2px;"><small><b>Limit:</b> {limit_text}</small></p>
+                <p style="margin-bottom:0px;"><b>Status:</b> {status_avg}</p>
             </div>
             """,
           unsafe_allow_html=True,
@@ -1213,7 +1177,7 @@ with tab_old_calc:
 
 
 # ==========================================
-# TAB 3: SMART HEADCOUNT & SHIFT HOURS (Cleaned of duplicate Average KPI inputs)
+# TAB 3: SMART HEADCOUNT & SHIFT HOURS
 # ==========================================
 with tab_smart_calc:
   st.subheader("📊 Smart Headcount & Shift Hours Calculator")
@@ -1350,7 +1314,6 @@ with tab_smart_calc:
 
   st.markdown("---")
 
-  # --- GRAND TOTAL HOURS INCORPORATING ALL ACTIVE TASKS ---
   total_recommended_staff = sum(
       int(st.session_state.active_tasks.get(t, res["recommended"]))
       for t, res in smart_calc_results.items()
