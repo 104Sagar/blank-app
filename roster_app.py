@@ -18,7 +18,7 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
-    /* Sidebar Styling with Soft Glass Effect */
+    /* Sidebar Styling */
     div[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #DCE7DF 0%, #E8F0EA 100%) !important;
         border-right: 1px solid rgba(46, 125, 50, 0.12) !important;
@@ -30,12 +30,12 @@ st.markdown("""
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border-radius: 16px !important;
-        padding: 1.25rem !important;
+        padding: 1rem !important;
         box-shadow: 0 8px 24px rgba(27, 47, 33, 0.05) !important;
         border: 1px solid rgba(255, 255, 255, 0.9) !important;
     }
 
-    /* Soft Rounded Expanders */
+    /* Expanders */
     div[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
         border-radius: 12px !important;
@@ -44,22 +44,15 @@ st.markdown("""
         margin-bottom: 0.75rem !important;
     }
 
-    /* Modern Rounded Form Inputs */
+    /* Form Inputs */
     div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="base-input"] {
         border-radius: 10px !important;
         background-color: #FFFFFF !important;
         border: 1px solid #C5DACB !important;
     }
-    
-    /* Multiselect Tags */
-    span[data-baseweb="tag"] {
-        background-color: #E2EFE5 !important;
-        border-radius: 6px !important;
-        color: #1B4323 !important;
-    }
 
     /* Primary Buttons & Form Submit Buttons */
-    .stButton > button, .stFormSubmitButton > button {
+    .stButton > button[kind="primary"], .stFormSubmitButton > button {
         border-radius: 10px !important;
         background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%) !important;
         color: #FFFFFF !important;
@@ -71,14 +64,15 @@ st.markdown("""
         width: 100% !important;
     }
 
-    .stButton > button:hover, .stFormSubmitButton > button:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3) !important;
-    }
-
-    /* Text Formatting */
-    h1, h2, h3, .stMarkdown {
-        color: #1B382B !important;
+    /* Trash / Tertiary Action Buttons Styling (Fixes Mobile Green Block) */
+    .stButton > button[kind="tertiary"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        font-size: 1.2rem !important;
+        padding: 0.2rem 0.4rem !important;
+        color: #D32F2F !important;
+        width: auto !important;
     }
 
     /* Code Output Box Styling */
@@ -102,19 +96,19 @@ if 'skills_list' not in st.session_state:
         "Others"
     ]
 
-# Default Staff Data
+# Clean Default Staff Data (No "Must work" or "Min 30h" tags)
 DEFAULT_STAFF_DB = [
-    {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "notes": "Must work"},
-    {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination"], "notes": "Must work"},
-    {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning"], "notes": "Must work"},
-    {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand"], "notes": "Supervising"},
-    {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others"], "notes": "Sulphur Pots"},
-    {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Truss Support", "Lowering"], "notes": "Min 30h"},
-    {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": "Min 30h"},
-    {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Pruning"], "notes": "Min 30h"},
-    {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering"], "notes": "Min 30h"},
-    {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support"], "notes": "Min 30h"},
-    {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing"], "notes": "Min 30h"},
+    {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "notes": ""},
+    {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination"], "notes": ""},
+    {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning"], "notes": ""},
+    {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand"], "notes": ""},
+    {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others"], "notes": ""},
+    {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Truss Support", "Lowering"], "notes": ""},
+    {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": ""},
+    {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Pruning"], "notes": ""},
+    {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering"], "notes": ""},
+    {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support"], "notes": ""},
+    {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing"], "notes": ""},
     {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": ""},
     {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Truss Support"], "notes": ""},
     {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
@@ -123,14 +117,14 @@ DEFAULT_STAFF_DB = [
     {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Others"], "notes": ""},
     {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
     {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
-    {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": "Mon-Wed Only"},
+    {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
     {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning"], "notes": ""},
     {"name": "Cassy", "category": "Urson", "skills": ["De-leafing"], "notes": ""},
     {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support"], "notes": ""},
     {"name": "Lin", "category": "Urson", "skills": ["Truss Support", "Lowering"], "notes": ""},
     {"name": "Moka", "category": "Urson", "skills": ["Truss Support"], "notes": ""},
-    {"name": "Panyawat", "category": "Urson", "skills": ["Others"], "notes": "Cleaning"},
-    {"name": "AkashDeep", "category": "Urson", "skills": ["Others"], "notes": "Stem Supports"}
+    {"name": "Panyawat", "category": "Urson", "skills": ["Others"], "notes": ""},
+    {"name": "AkashDeep", "category": "Urson", "skills": ["Others"], "notes": ""}
 ]
 
 # Read/Write Persistence File
@@ -162,13 +156,12 @@ if 'active_tasks' not in st.session_state:
 
 # Title
 st.title("📋 Glasshouse 3 - Weekly Labor Booking Planner")
-st.markdown("Dynamic multi-skill planner with GG, TOTC, and Urson priority allocation.")
 st.markdown("---")
 
 # --- SIDEBAR CONTROLS ---
 st.sidebar.header("⚙️ Roster & Staff Controls")
 
-# 1. Add New Staff (Form)
+# 1. Add New Staff
 with st.sidebar.expander("➕ Add New Staff Member"):
     with st.form("add_staff_form", clear_on_submit=True):
         new_name = st.text_input("Name")
@@ -179,29 +172,28 @@ with st.sidebar.expander("➕ Add New Staff Member"):
         skill2 = st.selectbox("Secondary Skill (Optional)", ["None"] + opts)
         skill3 = st.selectbox("Tertiary Skill (Optional)", ["None"] + opts)
         
-        new_note = st.text_input("Notes (e.g. Mon-Wed only)")
+        new_note = st.text_input("Notes (Optional)")
         
         submit_add = st.form_submit_button("Add Staff")
-        if submit_add:
-            if new_name.strip():
-                skills_arr = [skill1]
-                if skill2 != "None": skills_arr.append(skill2)
-                if skill3 != "None": skills_arr.append(skill3)
-                
-                st.session_state.staff_db.append({
-                    "name": new_name.strip(), 
-                    "category": new_cat, 
-                    "skills": skills_arr, 
-                    "notes": new_note
-                })
-                save_staff_data(st.session_state.staff_db)
-                st.sidebar.success(f"Added {new_name} and saved permanently!")
-                st.rerun()
+        if submit_add and new_name.strip():
+            skills_arr = [skill1]
+            if skill2 != "None": skills_arr.append(skill2)
+            if skill3 != "None": skills_arr.append(skill3)
+            
+            st.session_state.staff_db.append({
+                "name": new_name.strip(), 
+                "category": new_cat, 
+                "skills": skills_arr, 
+                "notes": new_note.strip()
+            })
+            save_staff_data(st.session_state.staff_db)
+            st.sidebar.success(f"Added {new_name}!")
+            st.rerun()
 
-# 2. Update / Train Existing Staff Skills (Form)
+# 2. Update / Train Staff Skills (Fixed State Processing)
 with st.sidebar.expander("🎓 Update / Train Staff Skills", expanded=True):
     staff_names = [s["name"] for s in st.session_state.staff_db]
-    selected_member_name = st.selectbox("Select Team Member", options=[""] + staff_names, key="select_member_to_update")
+    selected_member_name = st.selectbox("Select Team Member", options=[""] + staff_names, key="skill_select_member")
     
     if selected_member_name:
         person = next((s for s in st.session_state.staff_db if s["name"] == selected_member_name), None)
@@ -213,7 +205,7 @@ with st.sidebar.expander("🎓 Update / Train Staff Skills", expanded=True):
             
             opts = st.session_state.skills_list
             
-            with st.form(key=f"update_skills_form_{selected_member_name}"):
+            with st.form(key="update_skills_form_container"):
                 up_skill1 = st.selectbox("Primary Skill", opts, index=opts.index(p_skill) if p_skill in opts else 0)
                 up_skill2 = st.selectbox("Secondary Skill", ["None"] + opts, index=(["None"] + opts).index(s_skill) if s_skill in (["None"] + opts) else 0)
                 up_skill3 = st.selectbox("Tertiary Skill", ["None"] + opts, index=(["None"] + opts).index(t_skill) if t_skill in (["None"] + opts) else 0)
@@ -224,7 +216,10 @@ with st.sidebar.expander("🎓 Update / Train Staff Skills", expanded=True):
                     if up_skill2 != "None": new_s_arr.append(up_skill2)
                     if up_skill3 != "None": new_s_arr.append(up_skill3)
                     
-                    person["skills"] = new_s_arr
+                    for s in st.session_state.staff_db:
+                        if s["name"] == selected_member_name:
+                            s["skills"] = new_s_arr
+                            break
                     save_staff_data(st.session_state.staff_db)
                     st.sidebar.success(f"Updated skills for {selected_member_name}!")
                     st.rerun()
@@ -236,7 +231,7 @@ with st.sidebar.expander("🏷️ Master Skills List"):
         st.write(f"- {s}")
     
     add_skill_direct = st.text_input("Add Skill to System", key="add_skill_direct_key")
-    if st.button("Save New Skill"):
+    if st.button("Save New Skill", type="primary"):
         if add_skill_direct.strip() and add_skill_direct.strip() not in st.session_state.skills_list:
             st.session_state.skills_list.append(add_skill_direct.strip())
             st.sidebar.success(f"Added Skill: {add_skill_direct.strip()}")
@@ -246,14 +241,14 @@ with st.sidebar.expander("🏷️ Master Skills List"):
 with st.sidebar.expander("🗑️ Permanent Remove Staff"):
     staff_names = [s["name"] for s in st.session_state.staff_db]
     to_remove = st.selectbox("Select Staff to Remove", options=[""] + staff_names)
-    if st.button("Delete Permanently"):
+    if st.button("Delete Permanently", type="primary"):
         if to_remove:
             st.session_state.staff_db = [s for s in st.session_state.staff_db if s["name"] != to_remove]
             save_staff_data(st.session_state.staff_db)
             st.sidebar.warning(f"Removed {to_remove}")
             st.rerun()
 
-# 5. Backup & Restore
+# 5. Backup Data
 with st.sidebar.expander("💾 Backup / Export Data"):
     json_data = json.dumps(st.session_state.staff_db, indent=4)
     st.download_button(
@@ -269,14 +264,14 @@ st.sidebar.markdown("---")
 col_left, col_right = st.columns([1, 1.2])
 
 with col_left:
-    st.subheader("1. Availability & Absence Check")
+    st.subheader("1. Availability Check")
     all_names = [s["name"] for s in st.session_state.staff_db]
-    absent_staff = st.multiselect("Select staff on leave / quit / absent for next week:", options=all_names)
+    absent_staff = st.multiselect("Select staff absent / on leave for next week:", options=all_names)
 
 with col_right:
-    st.subheader("2. Weekly Task Setup & Headcounts")
+    st.subheader("2. Weekly Task Headcounts")
     
-    with st.expander("➕ Add Task Heading for Next Week", expanded=False):
+    with st.expander("➕ Add Task Heading", expanded=False):
         task_add_options = st.session_state.skills_list + ["➕ Other Custom Task"]
         chosen_task_opt = st.selectbox("Select Task Heading", task_add_options)
         
@@ -288,7 +283,7 @@ with col_right:
                 
         new_task_headcount = st.number_input("Headcount Needed", min_value=1, value=4)
         
-        if st.button("Add Task to Roster"):
+        if st.button("Add Task to Roster", type="primary"):
             if task_name_to_add and task_name_to_add != "➕ Other Custom Task":
                 if task_name_to_add not in st.session_state.skills_list:
                     st.session_state.skills_list.append(task_name_to_add)
@@ -296,17 +291,18 @@ with col_right:
                 st.success(f"Added task: {task_name_to_add}")
                 st.rerun()
 
-    st.markdown("**Adjust Required Headcount or Delete Tasks:**")
+    st.markdown("**Adjust Required Headcount:**")
     
     updated_tasks = {}
     tasks_to_delete = []
     
     for task_name, count in list(st.session_state.active_tasks.items()):
-        c1, c2, c3 = st.columns([2.5, 1.5, 0.8])
+        c1, c2, c3 = st.columns([3, 1.5, 0.6])
         c1.markdown(f"**{task_name}**")
         new_cnt = c2.number_input(f"Headcount", min_value=0, value=count, key=f"cnt_{task_name}", label_visibility="collapsed")
         
-        if c3.button("🗑️", key=f"del_{task_name}"):
+        # Trash button uses type="tertiary" to look clean on mobile
+        if c3.button("🗑️", key=f"del_{task_name}", type="tertiary"):
             tasks_to_delete.append(task_name)
         else:
             updated_tasks[task_name] = new_cnt
@@ -353,41 +349,74 @@ for person in available_pool:
     if not assigned:
         unassigned_staff.append(person)
 
-# --- DISPLAY RESULTS ---
+# --- DISPLAY RESULTS & TWO COPY-PASTE LISTS ---
 st.subheader(f"📊 Labor Allocation Plan (Total Requested: {total_requested} Staff)")
 
-col1, col2 = st.columns([1.2, 1])
+col1, col2 = st.columns([1, 1.2])
 
 with col1:
-    st.markdown("### 📋 Roster Breakdown (Name | Category)")
-    
+    st.markdown("### 📋 Live Roster Breakdown")
     for task, members in allocated_roster.items():
-        st.markdown(f"**{task} (Total: {len(members)} / {task_requirements[task]})**")
+        st.markdown(f"**{task} ({len(members)} / {task_requirements[task]})**")
         for m in members:
-            note_str = f" — *{m['notes']}*" if m['notes'] else ""
+            note_str = f" (*{m['notes']}*)" if m.get('notes') else ""
             st.write(f"- **{m['name']}** [{m['category']}]{note_str}")
         st.markdown("---")
 
 with col2:
-    st.markdown("### 📱 Copy-Paste Text Request for Booking")
+    st.markdown("### 📱 Copy-Paste Ready Lists")
     
-    text_output = f"GH3 - WEEKLY LABOR BOOKING REQUEST\n"
-    text_output += f"Total Staff Required: {total_requested}\n"
-    text_output += "-----------------------------------\n\n"
+    # BOX 1: LIST BY TASK
+    task_text_output = f"GH3 - WEEKLY LABOR BOOKING REQUEST (BY TASK)\n"
+    task_text_output += f"Total Staff Required: {total_requested}\n"
+    task_text_output += "-----------------------------------\n\n"
     
     for task, members in allocated_roster.items():
-        text_output += f"*{task.upper()} ({len(members)})*\n"
+        task_text_output += f"*{task.upper()} ({len(members)})*\n"
         for idx, m in enumerate(members, 1):
-            note = f" - {m['notes']}" if m['notes'] else ""
-            text_output += f"{idx}. {m['name']} ({m['category']}){note}\n"
-        text_output += "\n"
+            note = f" - {m['notes']}" if m.get('notes') else ""
+            task_text_output += f"{idx}. {m['name']} ({m['category']}){note}\n"
+        task_text_output += "\n"
         
     if unassigned_staff:
-        text_output += "*EXCLUDED / STANDBY STAFF*\n"
+        task_text_output += "*STANDBY / UNASSIGNED STAFF*\n"
         for u in unassigned_staff:
-            text_output += f"- {u['name']} ({u['category']})\n"
+            task_text_output += f"- {u['name']} ({u['category']})\n"
 
-    st.code(text_output, language="text")
+    st.markdown("**1. Grouped by Task Heading:**")
+    st.code(task_text_output, language="text")
+
+    # BOX 2: LIST BY EMPLOYEE CATEGORY
+    category_map = {"GG": [], "Leading Hand": [], "TOTC": [], "Urson": []}
+    
+    for task, members in allocated_roster.items():
+        for m in members:
+            cat = m["category"]
+            if cat not in category_map:
+                category_map[cat] = []
+            category_map[cat].append({"name": m["name"], "task": task, "notes": m.get("notes", "")})
+
+    cat_text_output = f"GH3 - WEEKLY LABOR BOOKING REQUEST (BY CATEGORY)\n"
+    cat_text_output += f"Total Staff Required: {total_requested}\n"
+    cat_text_output += "-----------------------------------\n\n"
+
+    cat_order = ["GG", "Leading Hand", "TOTC", "Urson"]
+    for cat in cat_order:
+        if cat in category_map and category_map[cat]:
+            cat_members = category_map[cat]
+            cat_text_output += f"*{cat.upper()} ({len(cat_members)})*\n"
+            for idx, m in enumerate(cat_members, 1):
+                note = f" - {m['notes']}" if m['notes'] else ""
+                cat_text_output += f"{idx}. {m['name']} - {m['task']}{note}\n"
+            cat_text_output += "\n"
+
+    if unassigned_staff:
+        cat_text_output += "*STANDBY / UNASSIGNED STAFF*\n"
+        for u in unassigned_staff:
+            cat_text_output += f"- {u['name']} ({u['category']})\n"
+
+    st.markdown("**2. Grouped by Employee Category:**")
+    st.code(cat_text_output, language="text")
 
 if unassigned_staff:
     st.warning(f"⚠️ **{len(unassigned_staff)} Available Staff Not Allocated:** " + ", ".join([u["name"] for u in unassigned_staff]))
