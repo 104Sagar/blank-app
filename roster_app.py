@@ -4,17 +4,53 @@ import pandas as pd
 # Page setup
 st.set_page_config(page_title="GG Labor Roster Planner", page_icon="📋", layout="wide")
 
-# Custom high-contrast styling
+# Custom soothing high-contrast theme styling
 st.markdown("""
     <style>
-    .main { background-color: #FFFFFF; }
-    div[data-testid="stSidebar"] { background-color: #F0F4F8 !important; }
-    .task-header { background-color: #E6F2FF; padding: 10px; border-radius: 5px; font-weight: bold; }
-    .copy-box { background-color: #F8F9FA; padding: 15px; border: 1px solid #D0D0D0; border-radius: 5px; font-family: monospace; }
+    /* Main Background - Soft Neutral Gray/Blue */
+    .stApp {
+        background-color: #F4F6F9 !important;
+    }
+    
+    /* Sidebar Background */
+    div[data-testid="stSidebar"] {
+        background-color: #EBF0F5 !important;
+    }
+    
+    /* Input Boxes and Cards */
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        background-color: #FFFFFF !important;
+        border-radius: 6px;
+    }
+    
+    /* Task Header Blocks */
+    .task-header {
+        background-color: #E2E8F0;
+        padding: 10px;
+        border-radius: 6px;
+        font-weight: bold;
+    }
+    
+    /* Clean Text Containers */
+    .stMarkdown, .stText {
+        color: #1E293B;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- INITIALIZE SESSION STATE DATABASE ---
+# --- INITIALIZE MASTER SKILLS LIST ---
+if 'skills_list' not in st.session_state:
+    st.session_state.skills_list = [
+        "Clip/Shoot + Pollination",
+        "Truss Support",
+        "De-leafing",
+        "Others",
+        "Leading Hand",
+        "Lowering",
+        "Pruning"
+    ]
+
+# --- INITIALIZE STAFF DATABASE ---
 if 'staff_db' not in st.session_state:
     st.session_state.staff_db = [
         # GG Members
@@ -53,24 +89,66 @@ if 'staff_db' not in st.session_state:
         {"name": "AkashDeep", "category": "Urson", "primary_task": "Others", "notes": "Stem Supports"}
     ]
 
+# Default Active Tasks Setup
+if 'active_tasks' not in st.session_state:
+    st.session_state.active_tasks = {
+        "Leading Hand": 2,
+        "Clip/Shoot + Pollination": 12,
+        "Truss Support": 5,
+        "De-leafing": 5,
+        "Others": 3
+    }
+
 # Header
 st.title("📋 Glasshouse 3 - Weekly Labor Booking Planner")
-st.markdown("Generate precise labor booking requests based on GG, TOTC, and Urson priority rules.")
+st.markdown("Dynamic task & skill planner with GG, TOTC, and Urson priority allocation.")
 st.markdown("---")
 
-# --- SIDEBAR: STAFF DATABASE MANAGEMENT ---
-st.sidebar.header("⚙️ Roster & Staff Database")
+# --- SIDEBAR: STAFF & SKILL CONTROLS ---
+st.sidebar.header("⚙️ Roster & Staff Controls")
 
-# Option to add new staff
+# Option to add new staff & custom skills
 with st.sidebar.expander("➕ Add New Staff Member"):
     new_name = st.text_input("Name")
     new_cat = st.selectbox("Category", ["GG", "TOTC", "Urson", "Leading Hand"])
-    new_task = st.selectbox("Primary Skill/Task", ["Clip/Shoot + Pollination", "De-leafing", "Truss Support", "Others", "Leading Hand", "Lowering", "Pruning"])
+    
+    # Skill Selector with option to add a brand new skill
+    skill_options = st.session_state.skills_list + ["➕ Add New Custom Skill..."]
+    selected_skill = st.selectbox("Primary Skill/Task", skill_options)
+    
+    final_skill = selected_skill
+    if selected_skill == "➕ Add New Custom Skill...":
+        custom_skill_input = st.text_input("Enter New Skill Name")
+        if custom_skill_input.strip():
+            final_skill = custom_skill_input.strip()
+
     new_note = st.text_input("Notes (e.g. Mon-Wed only)")
+    
     if st.button("Add Staff"):
-        if new_name.strip():
-            st.session_state.staff_db.append({"name": new_name.strip(), "category": new_cat, "primary_task": new_task, "notes": new_note})
-            st.sidebar.success(f"Added {new_name}")
+        if new_name.strip() and final_skill and final_skill != "➕ Add New Custom Skill...":
+            if final_skill not in st.session_state.skills_list:
+                st.session_state.skills_list.append(final_skill)
+                
+            st.session_state.staff_db.append({
+                "name": new_name.strip(), 
+                "category": new_cat, 
+                "primary_task": final_skill, 
+                "notes": new_note
+            })
+            st.sidebar.success(f"Added {new_name} ({final_skill})")
+            st.rerun()
+
+# Option to manage skill master list directly
+with st.sidebar.expander("🏷️ Master Skills List"):
+    st.markdown("**Current Skills:**")
+    for s in st.session_state.skills_list:
+        st.write(f"- {s}")
+    
+    add_skill_direct = st.text_input("Add Skill to System", key="add_skill_direct_key")
+    if st.button("Save New Skill"):
+        if add_skill_direct.strip() and add_skill_direct.strip() not in st.session_state.skills_list:
+            st.session_state.skills_list.append(add_skill_direct.strip())
+            st.sidebar.success(f"Added Skill: {add_skill_direct.strip()}")
             st.rerun()
 
 # Option to remove staff permanently
@@ -86,7 +164,7 @@ with st.sidebar.expander("🗑️ Permanent Remove Staff"):
 st.sidebar.markdown("---")
 
 # --- MAIN FORM INPUTS ---
-col_left, col_right = st.columns([1, 1])
+col_left, col_right = st.columns([1, 1.2])
 
 with col_left:
     st.subheader("1. Availability & Absence Check")
@@ -94,35 +172,55 @@ with col_left:
     absent_staff = st.multiselect("Select staff on leave / quit / absent for next week:", options=all_names)
 
 with col_right:
-    st.subheader("2. Weekly Task Headcount Requirements")
+    st.subheader("2. Weekly Task Setup & Headcounts")
     
-    # Task Demand Inputs
-    lh_count = st.number_input("Leading Hands Required", min_value=1, value=2)
-    clip_count = st.number_input("Clip/Shoot + Pollination Staff Required", min_value=0, value=12)
-    truss_count = st.number_input("Truss Support Staff Required", min_value=0, value=5)
-    deleaf_count = st.number_input("De-leafing Staff Required", min_value=0, value=5)
-    other_count = st.number_input("Other Jobs (Cleaning/Stem Support) Staff Required", min_value=0, value=3)
+    # Task Addition Box
+    with st.expander("➕ Add Task Heading for Next Week", expanded=False):
+        task_add_options = st.session_state.skills_list + ["➕ Other Custom Task"]
+        chosen_task_opt = st.selectbox("Select Task Heading", task_add_options)
+        
+        task_name_to_add = chosen_task_opt
+        if chosen_task_opt == "➕ Other Custom Task":
+            custom_t_input = st.text_input("Type Custom Task Heading")
+            if custom_t_input.strip():
+                task_name_to_add = custom_t_input.strip()
+                
+        new_task_headcount = st.number_input("Headcount Needed", min_value=1, value=4)
+        
+        if st.button("Add Task to Roster"):
+            if task_name_to_add and task_name_to_add != "➕ Other Custom Task":
+                if task_name_to_add not in st.session_state.skills_list:
+                    st.session_state.skills_list.append(task_name_to_add)
+                st.session_state.active_tasks[task_name_to_add] = new_task_headcount
+                st.success(f"Added task: {task_name_to_add}")
+                st.rerun()
+
+    st.markdown("**Adjust Required Headcount or Delete Tasks:**")
     
-    # Optional Custom Task
-    add_custom_task = st.checkbox("Add Extra Task (e.g., Lowering/Pruning)")
-    custom_task_name = ""
-    custom_task_count = 0
-    if add_custom_task:
-        c1, c2 = st.columns(2)
-        custom_task_name = c1.text_input("Task Name", value="Lowering")
-        custom_task_count = c2.number_input("Staff Needed", min_value=1, value=4)
+    # Render all active tasks with headcount adjuster and delete button
+    updated_tasks = {}
+    tasks_to_delete = []
+    
+    for task_name, count in list(st.session_state.active_tasks.items()):
+        c1, c2, c3 = st.columns([2.5, 1.5, 0.8])
+        c1.markdown(f"**{task_name}**")
+        new_cnt = c2.number_input(f"Headcount", min_value=0, value=count, key=f"cnt_{task_name}", label_visibility="collapsed")
+        
+        if c3.button("🗑️", key=f"del_{task_name}"):
+            tasks_to_delete.append(task_name)
+        else:
+            updated_tasks[task_name] = new_cnt
 
-# Build Target Requirements Dict
-task_requirements = {
-    "Leading Hand": lh_count,
-    "Clip/Shoot + Pollination": clip_count,
-    "Truss Support": truss_count,
-    "De-leafing": deleaf_count,
-    "Others": other_count
-}
-if add_custom_task and custom_task_name:
-    task_requirements[custom_task_name] = custom_task_count
+    # Remove deleted tasks
+    for d_task in tasks_to_delete:
+        if d_task in updated_tasks:
+            del updated_tasks[d_task]
+        st.session_state.active_tasks = updated_tasks
+        st.rerun()
 
+    st.session_state.active_tasks = updated_tasks
+
+task_requirements = {t: c for t, c in st.session_state.active_tasks.items() if c > 0}
 total_requested = sum(task_requirements.values())
 
 st.markdown("---")
@@ -143,12 +241,10 @@ for person in available_pool:
     assigned = False
     p_task = person["primary_task"]
     
-    # Try placing in primary skill task if demand remains
     if p_task in task_requirements and len(allocated_roster[p_task]) < task_requirements[p_task]:
         allocated_roster[p_task].append(person)
         assigned = True
     else:
-        # Fallback: fill other open requirements for high priority staff (GG/TOTC)
         if person["category"] in ["GG", "TOTC"]:
             for task, req_count in task_requirements.items():
                 if task != "Leading Hand" and len(allocated_roster[task]) < req_count:
@@ -181,7 +277,6 @@ with col2:
     st.markdown("### 📱 Copy-Paste Text Request for Booking")
     st.markdown("Copy this exact summary block to send via Message or WhatsApp:")
     
-    # Generate clean text format
     text_output = f"GH3 - WEEKLY LABOR BOOKING REQUEST\n"
     text_output += f"Total Staff Required: {total_requested}\n"
     text_output += "-----------------------------------\n\n"
