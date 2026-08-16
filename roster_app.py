@@ -1855,7 +1855,9 @@ with tab_smart_calc:
       else:
         rec_val = int(res["recommended"])
       st.session_state.active_tasks[task_name] = rec_val
-      st.session_state[f"cnt_{task_name}"] = rec_val
+      if f"cnt_{task_name}" in st.session_state:
+        del st.session_state[f"cnt_{task_name}"]
+
     curr_sets = load_settings()
     curr_sets["active_tasks"] = st.session_state.active_tasks
     save_settings(curr_sets)
