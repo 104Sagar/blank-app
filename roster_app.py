@@ -1065,7 +1065,7 @@ with tab_planner:
         cat_members = category_map[cat]
         cat_text_output += f"*{cat.upper()} ({len(cat_members)})*\n"
         for idx, m in enumerate(cat_members, 1):
-          note = f" - {m['notes']}" if m["notes"] else ""
+          note = f" - {m['notes']}" if m['notes'] else ""
           cat_text_output += f"{idx}. {m['name']} - {m['task']}{note}\n"
         cat_text_output += "\n"
 
@@ -1540,22 +1540,136 @@ with tab_smart_calc:
   )
 
   st.markdown("---")
-  st.markdown("### Staff Number Recommendations")
 
   gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
   gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
   gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
 
   active_tasks_list = list(st.session_state.active_tasks.keys())
-  smart_calc_results = {}
+
+  # ==========================================
+  # SECTION 1: STAFF NUMBER RECOMMENDATIONS (AVERAGE KPI)
+  # ==========================================
+  st.markdown(
+      "### 📈 Staff Number Recommendations (Based on Average KPI)"
+  )
+
+  ash1, ash2, ash3, ash4 = st.columns([2, 1.2, 1.5, 1.5])
+  ash1.markdown("**Task Name**")
+  ash2.markdown("**Average KPI / Count**")
+  ash3.markdown("**Exact Headcount**")
+  ash4.markdown("**Rec. Headcount (Ceiling)**")
+  st.markdown("---")
+
+  avg_kpi_calc_results = {}
+  total_avg_rec_hc = 0
+  total_avg_mh = 0.0
+
+  for task_name in active_tasks_list:
+    asc1, asc2, asc3, asc4 = st.columns([2, 1.2, 1.5, 1.5])
+    asc1.markdown(f"**{task_name}**")
+
+    if task_name in ["Leading Hand", "Others"]:
+      current_val = float(st.session_state.active_tasks[task_name])
+      asc2.markdown(
+          f"<small style='color:gray;'>Fixed ({current_val})</small>",
+          unsafe_allow_html=True,
+      )
+      mh = current_val * gh_crop_work_hrs_per_week
+      exact_hc = current_val
+      rec_hc = int(current_val)
+      asc3.markdown(f"`{exact_hc:.2f} workers`")
+      asc4.markdown(
+          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
+          f" 1.1rem;'>{rec_hc} workers</span>",
+          unsafe_allow_html=True,
+      )
+    else:
+      avg_input_key = f"smart_avg_kpi_{task_name}"
+      if avg_input_key not in st.session_state:
+        default_avg = float(
+            st.session_state.saved_avg_kpis.get(
+                task_name,
+                st.session_state.task_targets.get(task_name, 100.0),
+            )
+        )
+        st.session_state[avg_input_key] = default_avg
+
+
+      def update_smart_avg(t_name=task_name, k=avg_input_key):
+        val = float(st.session_state[k])
+        st.session_state.saved_avg_kpis[t_name] = val
+        curr_sets = load_settings()
+        curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
+        save_settings(curr_sets)
+
+
+      avg_kpi_val = asc2.number_input(
+          f"Avg KPI {task_name}",
+          min_value=1.0,
+          value=float(st.session_state[avg_input_key]),
+          step=10.0,
+          key=avg_input_key,
+          on_change=update_smart_avg,
+          label_visibility="collapsed",
+      )
+      st.session_state.saved_avg_kpis[task_name] = avg_kpi_val
+
+      mh = total_gh_plants / avg_kpi_val if avg_kpi_val > 0 else 0
+      exact_hc = (
+          mh / gh_crop_work_hrs_per_week
+          if gh_crop_work_hrs_per_week > 0
+          else 0
+      )
+      rec_hc = math.ceil(exact_hc)
+
+      asc3.markdown(f"`{exact_hc:.2f} workers`")
+      asc4.markdown(
+          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
+          f" 1.1rem;'>{rec_hc} workers</span>",
+          unsafe_allow_html=True,
+      )
+
+    avg_kpi_calc_results[task_name] = {
+        "exact": exact_hc,
+        "recommended": rec_hc,
+        "man_hours": mh,
+    }
+    total_avg_rec_hc += rec_hc
+    total_avg_mh += mh
+
+  st.markdown(
+      f"""
+        <div style="background: rgba(45,106,79,0.08); padding: 12px 18px; border-radius: 10px; border: 1px solid #C5DACB; margin-top: 10px; margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 1.05rem; color: #1B4332;">
+                <b>Average KPI Section Total:</b> 
+                <span style="font-weight: bold; color: #2D6A4F;">{total_avg_rec_hc} Workers Recommended</span> &nbsp;|&nbsp; 
+                Total Man-Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_avg_mh:,.1f} Man-Hrs</span>
+            </p>
+        </div>
+        """,
+      unsafe_allow_html=True,
+  )
+
+  st.markdown("---")
+
+  # ==========================================
+  # SECTION 2: STAFF NUMBER RECOMMENDATIONS (TARGET KPI)
+  # ==========================================
+  st.markdown(
+      "### 🎯 Staff Number Recommendations (Based on Target KPI)"
+  )
 
   sh1, sh2, sh3, sh4 = st.columns([2, 1.2, 1.5, 1.5])
   sh1.markdown("**Task Name**")
   sh2.markdown("**Target KPI / Count**")
   sh3.markdown("**Exact Headcount**")
   sh4.markdown("**Rec. Headcount (Ceiling)**")
-
   st.markdown("---")
+
+  target_kpi_calc_results = {}
+  total_target_rec_hc = 0
+  total_target_mh = 0.0
 
   for task_name in active_tasks_list:
     sc1, sc2, sc3, sc4 = st.columns([2, 1.2, 1.5, 1.5])
@@ -1571,15 +1685,18 @@ with tab_smart_calc:
           key=f"smart_kpi_{task_name}",
           label_visibility="collapsed",
       )
-      smart_calc_results[task_name] = {
-          "exact": lh_input,
-          "recommended": int(lh_input),
-          "man_hours": lh_input * gh_crop_work_hrs_per_week,
+      mh = lh_input * gh_crop_work_hrs_per_week
+      exact_hc = lh_input
+      rec_hc = int(lh_input)
+      target_kpi_calc_results[task_name] = {
+          "exact": exact_hc,
+          "recommended": rec_hc,
+          "man_hours": mh,
       }
       sc3.markdown(f"`{lh_input:.2f} workers`")
       sc4.markdown(
           f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{int(lh_input)} workers</span>",
+          f" 1.1rem;'>{rec_hc} workers</span>",
           unsafe_allow_html=True,
       )
     elif task_name == "Others":
@@ -1592,15 +1709,18 @@ with tab_smart_calc:
           key=f"smart_kpi_{task_name}",
           label_visibility="collapsed",
       )
-      smart_calc_results[task_name] = {
-          "exact": other_input,
-          "recommended": int(other_input),
-          "man_hours": other_input * gh_crop_work_hrs_per_week,
+      mh = other_input * gh_crop_work_hrs_per_week
+      exact_hc = other_input
+      rec_hc = int(other_input)
+      target_kpi_calc_results[task_name] = {
+          "exact": exact_hc,
+          "recommended": rec_hc,
+          "man_hours": mh,
       }
       sc3.markdown(f"`{other_input:.2f} workers`")
       sc4.markdown(
           f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{int(other_input)} workers</span>",
+          f" 1.1rem;'>{rec_hc} workers</span>",
           unsafe_allow_html=True,
       )
     else:
@@ -1617,9 +1737,9 @@ with tab_smart_calc:
       )
       st.session_state.task_targets[task_name] = target_kpi_input
 
-      man_hours = total_gh_plants / target_kpi_input if target_kpi_input > 0 else 0
+      mh = total_gh_plants / target_kpi_input if target_kpi_input > 0 else 0
       exact_hc = (
-          man_hours / gh_crop_work_hrs_per_week
+          mh / gh_crop_work_hrs_per_week
           if gh_crop_work_hrs_per_week > 0
           else 0
       )
@@ -1632,18 +1752,35 @@ with tab_smart_calc:
           unsafe_allow_html=True,
       )
 
-      smart_calc_results[task_name] = {
+      target_kpi_calc_results[task_name] = {
           "exact": exact_hc,
           "recommended": rec_hc,
-          "man_hours": man_hours,
+          "man_hours": mh,
       }
+
+    total_target_rec_hc += rec_hc
+    total_target_mh += mh
+
+  st.markdown(
+      f"""
+        <div style="background: rgba(45,106,79,0.08); padding: 12px 18px; border-radius: 10px; border: 1px solid #C5DACB; margin-top: 10px; margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 1.05rem; color: #1B4332;">
+                <b>Target KPI Section Total:</b> 
+                <span style="font-weight: bold; color: #2D6A4F;">{total_target_rec_hc} Workers Recommended</span> &nbsp;|&nbsp; 
+                Total Man-Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_target_mh:,.1f} Man-Hrs</span>
+            </p>
+        </div>
+        """,
+      unsafe_allow_html=True,
+  )
 
   st.markdown("---")
 
   if st.button(
-      "🔄 Sync Headcounts to Weekly Roster Planner (Tab 1)", type="primary"
+      "🔄 Sync Target KPI Headcounts to Weekly Roster Planner (Tab 1)",
+      type="primary",
   ):
-    for task_name, res in smart_calc_results.items():
+    for task_name, res in target_kpi_calc_results.items():
       rec_val = int(res["recommended"])
       st.session_state.active_tasks[task_name] = rec_val
       st.session_state[f"cnt_{task_name}"] = rec_val
@@ -1651,6 +1788,7 @@ with tab_smart_calc:
     curr_sets["active_tasks"] = st.session_state.active_tasks
     save_settings(curr_sets)
     st.success(
-        "Successfully populated Tab 1 headcounts with the recommended values!"
+        "Successfully populated Tab 1 headcounts with the Target KPI recommended"
+        " values!"
     )
     st.rerun()
