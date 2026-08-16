@@ -510,7 +510,7 @@ with tab_kpi:
         st.warning(f"No staff currently trained in {selected_task_to_eval}. Go to sidebar 'Update / Train Staff Skills' to assign this skill.")
     else:
         with st.form(f"kpi_form_{selected_task_to_eval}"):
-            h1, h2, h3, h4, h5 = st.columns([1.5, 1.2, 1, 1.5])
+            h1, h2, h3, h4 = st.columns([1.5, 1.2, 1, 1.5])
             h1.markdown("**Staff Name**")
             h2.markdown(f"**KPI Score (Target: {target_val_for_task})**")
             h3.markdown("**Quality**")
