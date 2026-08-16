@@ -1210,12 +1210,14 @@ with tab_old_calc:
 
   st.subheader("📝 Task Breakdowns & Overtime Status")
 
+  total_combined_avg_hours = 0.0
+
   for task in tasks_comparison_data:
     st.markdown(f"#### 📋 {task['name']} (Staff Assigned: {task['staff']})")
     tc1, tc2 = st.columns(2)
 
     is_clip_shoot = "clip/shoot" in task["name"].lower()
-    is_shared = "lowering" in task["name"].lower()  # Truss Support removed from shared limit
+    is_shared = "lowering" in task["name"].lower()
 
     if is_clip_shoot:
       limit_ref = max_allowed_hours - ((9.0 / 5.0) * remaining_days)
@@ -1289,6 +1291,8 @@ with tab_old_calc:
       mh_avg = task["plants"] / avg_kpi_user if avg_kpi_user > 0 else 0
       dur_avg = mh_avg / task["staff"] if task["staff"] > 0 else 0
 
+      total_combined_avg_hours += mh_avg
+
       is_ot_avg = dur_avg > limit_ref
       card_cls2 = "task-card-alert" if is_ot_avg else "task-card-normal"
       if is_ot_avg:
@@ -1309,6 +1313,48 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
     st.markdown("---")
+
+  # --- SHOW LEADING HAND AND OTHERS IN TASK BREAKDOWNS ---
+  support_tasks_to_show = ["Leading Hand", "Others"]
+  for task_name in support_tasks_to_show:
+    if task_name in st.session_state.active_tasks:
+      staff_qty = int(st.session_state.active_tasks[task_name])
+      if staff_qty > 0:
+        hours_per_worker = (
+            remaining_days * (gh_crop_work_hrs_per_week / 5.0)
+        )  # e.g., remaining_days * 7.35
+        total_task_mh = staff_qty * hours_per_worker
+        total_combined_avg_hours += total_task_mh
+
+        st.markdown(
+            f"#### 📋 {task_name} (Staff Assigned: {staff_qty} Workers)"
+        )
+        st.markdown(
+            f"""
+                <div class="task-card-normal">
+                    <p style="margin-bottom:4px; font-weight:bold; color:#2D6A4F; font-size:1rem;">⭐ Assigned Shift Hours Summary</p>
+                    <p style="margin-bottom:4px;"><b>Total Man-Hours:</b> {total_task_mh:,.1f} Man-Hrs &nbsp;|&nbsp; <b>Per Worker:</b> {hours_per_worker:.1f} Hrs</p>
+                    <hr style="margin: 6px 0; border: 0; border-top: 1px solid #D0D0D0;">
+                    <p style="margin-bottom:0px;"><b>Status:</b> <span style="color: #1E7E34; font-weight: bold;">✅ Scheduled ({staff_qty} Workers Active)</span></p>
+                </div>
+                """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("---")
+
+  # --- TOTAL COMBINED HOURS SUMMARY ---
+  st.markdown(
+      f"""
+        <div style="background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%); padding: 18px 20px; border-radius: 14px; color: #FFFFFF; box-shadow: 0 4px 15px rgba(27,47,33,0.15); margin-top: 15px;">
+            <h3 style="margin: 0 0 8px 0; color: #FFFFFF; font-size: 1.25rem;">📊 Total Combined Hours Summary</h3>
+            <p style="margin: 0; font-size: 1.1rem;">
+                <b>Total Man-Hours (Average KPI View for Regular Tasks + Leading Hand + Others):</b> 
+                <span style="font-size: 1.3rem; font-weight: bold; color: #A3E4D7;">{total_combined_avg_hours:,.1f} Man-Hours</span>
+            </p>
+        </div>
+        """,
+      unsafe_allow_html=True,
+  )
 
 
 # ==========================================
