@@ -790,14 +790,17 @@ with tab_planner:
     st.markdown("---")
     st.subheader("⭐ Leading Hand Selection")
 
-    # Ensure Tico and all other leading hands are active by default
+    # Ensure Tico and all leading hands are active by default and kept updated
     if "selected_leading_hands_filter" not in st.session_state:
       st.session_state["selected_leading_hands_filter"] = lh_names
+    else:
+      for name in lh_names:
+        if name not in st.session_state["selected_leading_hands_filter"]:
+          st.session_state["selected_leading_hands_filter"].append(name)
 
     selected_leading_hands = st.multiselect(
         "Select Leading Hands to Keep Active:",
         options=lh_names,
-        default=lh_names,
         key="selected_leading_hands_filter",
     )
 
@@ -824,7 +827,6 @@ with tab_planner:
           st.session_state.active_tasks[task_name_to_add] = new_task_headcount
           st.session_state[f"cnt_{task_name_to_add}"] = int(new_task_headcount)
 
-          # Save active tasks to settings.json
           curr_sets = load_settings()
           curr_sets["active_tasks"] = st.session_state.active_tasks
           save_settings(curr_sets)
@@ -1603,4 +1605,3 @@ with tab_smart_calc:
         "Successfully populated Tab 1 headcounts with the recommended values!"
     )
     st.rerun()
-        
