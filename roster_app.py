@@ -1022,7 +1022,7 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (Persistent Manual Average KPIs)
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (With Grand Total Metrics on Top & Reliable Persistent KPIs)
 # ==========================================
 with tab_old_calc:
   st.subheader("🧮 Advanced Workload & Overtime Status")
@@ -1053,6 +1053,38 @@ with tab_old_calc:
 
   st.markdown("---")
 
+  # --- GRAND TOTAL SHIFT HOURS REQUIRED METRICS BLOCK (MOVED TO TOP OF TAB 2) ---
+  gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
+  gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
+  gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
+
+  total_recommended_staff = sum(
+      int(count) for count in st.session_state.active_tasks.values()
+  )
+  active_crop_staff_total = sum(
+      int(count)
+      for t, count in st.session_state.active_tasks.items()
+      if t != "Leading Hand"
+  )
+  leading_hand_staff_count = int(
+      st.session_state.active_tasks.get("Leading Hand", 0)
+  )
+
+  total_crop_work_hours = (
+      active_crop_staff_total + leading_hand_staff_count
+  ) * gh_crop_work_hrs_per_week
+  total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
+  total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
+
+  st.markdown("### 📋 Grand Total Shift Hours Required")
+  gh_res1, gh_res2, gh_res3, gh_res4 = st.columns(4)
+  gh_res1.metric("Total Recommended Headcount", f"{total_recommended_staff} Workers")
+  gh_res2.metric("Total Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
+  gh_res3.metric("Total Paid Hours", f"{total_paid_hours:,.1f} hrs")
+  gh_res4.metric("Total Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
+
+  st.markdown("---")
+
   shared_rows = st.session_state.calc_rows
   shared_density = st.session_state.calc_plants_per_row
 
@@ -1064,7 +1096,7 @@ with tab_old_calc:
 
     target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
 
-    # Initialize persistent saved average KPI once from staff db if not present
+    # Initialize persistent saved average KPI securely once
     if task_name not in st.session_state.saved_avg_kpis:
       kpis_logged = []
       for person in st.session_state.staff_db:
@@ -1136,7 +1168,7 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
-    # --- Average KPI Card with Strictly Saved Persistent State ---
+    # --- Average KPI Card with Strictly Locked Persistent State ---
     with tc2:
       st.markdown(
           "<p style='margin-bottom:2px; font-weight:bold; color:#1B4332;"
@@ -1144,21 +1176,26 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
-      def update_avg_kpi(t_name=task["name"]):
-        st.session_state.saved_avg_kpis[t_name] = st.session_state[
-            f"adv_avg_kpi_input_{t_name}"
+      input_key = f"adv_avg_kpi_input_{task['name']}"
+
+      # Ensure session state has the current saved value before rendering widget
+      if input_key not in st.session_state:
+        st.session_state[input_key] = st.session_state.saved_avg_kpis[
+            task["name"]
         ]
+
+      def update_avg_kpi(t_name=task["name"], k=input_key):
+        st.session_state.saved_avg_kpis[t_name] = st.session_state[k]
 
       avg_kpi_user = st.number_input(
           f"Average KPI for {task['name']}",
           min_value=1.0,
-          value=float(st.session_state.saved_avg_kpis[task["name"]]),
           step=10.0,
-          key=f"adv_avg_kpi_input_{task['name']}",
+          key=input_key,
           on_change=update_avg_kpi,
           label_visibility="collapsed",
       )
-      # Ensure saved dict stays locked to current user input
+      # Synchronize back
       st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_user
 
       mh_avg = task["plants"] / avg_kpi_user if avg_kpi_user > 0 else 0
@@ -1321,35 +1358,6 @@ with tab_smart_calc:
           "recommended": rec_hc,
           "man_hours": man_hours,
       }
-
-  st.markdown("---")
-
-  total_recommended_staff = sum(
-      int(st.session_state.active_tasks.get(t, res["recommended"]))
-      for t, res in smart_calc_results.items()
-  )
-
-  active_crop_staff_total = sum(
-      int(st.session_state.active_tasks.get(t, 0))
-      for t in st.session_state.active_tasks.keys()
-      if t != "Leading Hand"
-  )
-  leading_hand_staff_count = int(
-      st.session_state.active_tasks.get("Leading Hand", 0)
-  )
-
-  total_crop_work_hours = (
-      active_crop_staff_total + leading_hand_staff_count
-  ) * gh_crop_work_hrs_per_week
-  total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
-  total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
-
-  st.subheader("📋 Grand Total Shift Hours Required")
-  gh_res1, gh_res2, gh_res3, gh_res4 = st.columns(4)
-  gh_res1.metric("Total Recommended Headcount", f"{total_recommended_staff} Workers")
-  gh_res2.metric("Total Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
-  gh_res3.metric("Total Paid Hours", f"{total_paid_hours:,.1f} hrs")
-  gh_res4.metric("Total Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
 
   st.markdown("---")
 
