@@ -480,7 +480,7 @@ if "active_tasks" not in st.session_state:
   }
 
 # Title
-st.title("📋 Glasshouse 3 - Weekly Labor Booking Planner")
+st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
 
 # --- NAVIGATION TABS ---
@@ -859,7 +859,7 @@ with tab_planner:
   with col2:
     st.markdown("### 📱 Copy-Paste Ready Lists")
 
-    task_text_output = "GH3 - WEEKLY LABOR BOOKING REQUEST (BY TASK)\n"
+    task_text_output = "GH3 - WEEKLY LABOR PLAN (BY TASK)\n"
     task_text_output += f"Total Staff Required: {total_requested}\n"
     task_text_output += "-----------------------------------\n\n"
 
@@ -869,7 +869,6 @@ with tab_planner:
         m = item["person"]
         m_type = item["match_type"]
         
-        # Color dot symbol for copy-paste output without text labels
         if m_type == "Primary":
           dot_symbol = "🟢"
         elif m_type == "Secondary":
@@ -914,7 +913,7 @@ with tab_planner:
             "notes": t_note,
         })
 
-    cat_text_output = "GH3 - WEEKLY LABOR BOOKING REQUEST (BY CATEGORY)\n"
+    cat_text_output = "GH3 - WEEKLY LABOR PLAN (BY CATEGORY)\n"
     cat_text_output += f"Total Staff Required: {total_requested}\n"
     cat_text_output += "-----------------------------------\n\n"
 
