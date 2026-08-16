@@ -10,7 +10,7 @@ st.set_page_config(
 
 # File paths for persistent database & settings storage
 DATA_FILE = "staff_db.json"
-SETTINGS_FILE = "json_settings.json"
+SETTINGS_FILE = "settings.json"
 
 
 def load_settings():
@@ -1846,18 +1846,21 @@ with tab_smart_calc:
   st.markdown("---")
 
   if st.button(
-      "🔄 Sync Target KPI Headcounts to Weekly Roster Planner (Tab 1)",
+      "🔄 Sync Average KPI Headcounts to Weekly Roster Planner (Tab 1)",
       type="primary",
   ):
-    for task_name, res in target_kpi_calc_results.items():
-      rec_val = int(res["recommended"])
+    for task_name, res in avg_kpi_calc_results.items():
+      if task_name == "Clip/Shoot & Pollination":
+        rec_val = 12  # Combined total for clip/shoot and pollination together as 12
+      else:
+        rec_val = int(res["recommended"])
       st.session_state.active_tasks[task_name] = rec_val
       st.session_state[f"cnt_{task_name}"] = rec_val
     curr_sets = load_settings()
     curr_sets["active_tasks"] = st.session_state.active_tasks
     save_settings(curr_sets)
     st.success(
-        "Successfully populated Tab 1 headcounts with the Target KPI recommended"
-        " values!"
+        "Successfully populated Tab 1 headcounts with the Average KPI"
+        " recommended values (Clip/Shoot & Pollination set to 12)!"
     )
     st.rerun()
