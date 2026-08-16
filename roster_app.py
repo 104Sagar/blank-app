@@ -101,16 +101,6 @@ st.markdown(
         border: 1px solid #D1E0D5 !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
     }
-
-    /* Minimalist Table Row Card */
-    .minimal-task-card {
-        background-color: #FFFFFF;
-        padding: 10px 14px;
-        border-radius: 10px;
-        border: 1px solid #D5E3D8;
-        margin-bottom: 8px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.02);
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -1090,12 +1080,12 @@ with tab_planner:
   if unassigned_staff:
     st.warning(
         f"⚠️ **{len(unassigned_staff)} Available Staff Not Allocated:** "
-        + ". ".join([u["name"] for u in unassigned_staff])
+        + ", ".join([u["name"] for u in unassigned_staff])
     )
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (MINIMALISTIC)
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (UNIFIED SINGLE BOX)
 # ==========================================
 with tab_old_calc:
   st.subheader("🧮 Advanced Workload & Overtime Status")
@@ -1190,18 +1180,35 @@ with tab_old_calc:
         "dur_target": dur_target,
     })
 
-  st.markdown("### 📋 Minimalist Task Breakdowns & Overtime Summary")
+  st.markdown("### 📋 Task Breakdowns & Overtime Summary")
+
+  # --- SINGLE UNIFIED HORIZONTAL CONTAINER FOR ALL TASKS ---
+  st.markdown(
+      """
+        <div style="background-color: #FFFFFF; padding: 16px 20px; border-radius: 14px; border: 1px solid #D5E3D8; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 15px;">
+        """,
+      unsafe_allow_html=True,
+  )
 
   total_combined_avg_hours = 0.0
+  active_support_tasks = [
+      t
+      for t in ["Leading Hand", "Others"]
+      if t in st.session_state.active_tasks
+      and int(st.session_state.active_tasks[t]) > 0
+  ]
+  total_rows_count = len(tasks_comparison_data) + len(active_support_tasks)
+  current_row_idx = 0
 
   for task in tasks_comparison_data:
-    input_key = f"minimal_avg_kpi_{task['name']}"
+    current_row_idx += 1
+    input_key = f"unified_avg_kpi_{task['name']}"
     if input_key not in st.session_state:
       st.session_state[input_key] = float(
           st.session_state.saved_avg_kpis.get(task["name"], 100.0)
       )
 
-    def update_minimal_kpi(t_name=task["name"], k=input_key):
+    def update_unified_kpi(t_name=task["name"], k=input_key):
       val = float(st.session_state[k])
       st.session_state.saved_avg_kpis[t_name] = val
       curr_sets = load_settings()
@@ -1221,7 +1228,6 @@ with tab_old_calc:
       limit_ref = max_allowed_hours
       limit_label = f"Max {limit_ref:.1f}h"
 
-    # Row columns for minimalist view
     c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
         [2.2, 1.0, 1.3, 1.5, 1.8]
     )
@@ -1235,7 +1241,7 @@ with tab_old_calc:
         value=float(st.session_state[input_key]),
         step=10.0,
         key=input_key,
-        on_change=update_minimal_kpi,
+        on_change=update_unified_kpi,
         label_visibility="collapsed",
     )
     st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_val
@@ -1264,42 +1270,48 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
-    st.markdown(
-        "<hr style='margin: 4px 0; border: 0; border-top: 1px solid"
-        " #E0E8E2;'>",
+    if current_row_idx < total_rows_count:
+      st.markdown(
+          "<hr style='margin: 8px 0; border: 0; border-top: 1px solid"
+          " #EAEFEA;'>",
+          unsafe_allow_html=True,
+      )
+
+  # --- SUPPORT TASKS (LEADING HAND & OTHERS) ---
+  for task_name in active_support_tasks:
+    current_row_idx += 1
+    staff_qty = int(st.session_state.active_tasks[task_name])
+    hours_per_worker = remaining_days * (gh_crop_work_hrs_per_week / 5.0)
+    total_task_mh = staff_qty * hours_per_worker
+    total_combined_avg_hours += total_task_mh
+
+    c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
+        [2.2, 1.0, 1.3, 1.5, 1.8]
+    )
+    c_name.markdown(f"**{task_name}**")
+    c_staff.markdown(f"👥 `{staff_qty} Staff`")
+    c_kpi.markdown(
+        "<small style='color:gray;'>Fixed Role</small>",
+        unsafe_allow_html=True,
+    )
+    c_hrs.markdown(
+        f"`{total_task_mh:.1f} Man-Hrs` <br><small"
+        f" style='color:gray;'>({hours_per_worker:.1f}h/worker)</small>",
+        unsafe_allow_html=True,
+    )
+    c_status.markdown(
+        "<span style='color: #1E7E34; font-weight:600;'>✅ Scheduled</span>",
         unsafe_allow_html=True,
     )
 
-  # --- SUPPORT TASKS (LEADING HAND & OTHERS) ---
-  support_tasks_to_show = ["Leading Hand", "Others"]
-  for task_name in support_tasks_to_show:
-    if task_name in st.session_state.active_tasks:
-      staff_qty = int(st.session_state.active_tasks[task_name])
-      if staff_qty > 0:
-        hours_per_worker = remaining_days * (gh_crop_work_hrs_per_week / 5.0)
-        total_task_mh = staff_qty * hours_per_worker
-        total_combined_avg_hours += total_task_mh
+    if current_row_idx < total_rows_count:
+      st.markdown(
+          "<hr style='margin: 8px 0; border: 0; border-top: 1px solid"
+          " #EAEFEA;'>",
+          unsafe_allow_html=True,
+      )
 
-        c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
-            [2.2, 1.0, 1.3, 1.5, 1.8]
-        )
-        c_name.markdown(f"**{task_name}**")
-        c_staff.markdown(f"👥 `{staff_qty} Staff`")
-        c_kpi.markdown(f"<small style='color:gray;'>Fixed Role</small>")
-        c_hrs.markdown(
-            f"`{total_task_mh:.1f} Man-Hrs` <br><small"
-            f" style='color:gray;'>({hours_per_worker:.1f}h/worker)</small>",
-            unsafe_allow_html=True,
-        )
-        c_status.markdown(
-            "<span style='color: #1E7E34; font-weight:600;'>✅ Scheduled</span>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            "<hr style='margin: 4px 0; border: 0; border-top: 1px solid"
-            " #E0E8E2;'>",
-            unsafe_allow_html=True,
-        )
+  st.markdown("</div>", unsafe_allow_html=True)
 
   # --- TOTAL COMBINED HOURS & COFFEE BREAK SUMMARY ---
   coffee_break_hours = total_recommended_staff * 0.25 * remaining_days
