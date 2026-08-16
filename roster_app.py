@@ -1676,13 +1676,16 @@ with tab_smart_calc:
   total_avg_rec_hc += poll_avg_hc
   total_avg_mh += poll_avg_mh
 
+  total_avg_hours = total_avg_rec_hc * 7.6
+
   st.markdown(
       f"""
         <div style="background: rgba(45,106,79,0.08); padding: 12px 18px; border-radius: 10px; border: 1px solid #C5DACB; margin-top: 10px; margin-bottom: 20px;">
             <p style="margin: 0; font-size: 1.05rem; color: #1B4332;">
                 <b>Average KPI Section Total:</b> 
                 <span style="font-weight: bold; color: #2D6A4F;">{total_avg_rec_hc} Workers Recommended</span> &nbsp;|&nbsp; 
-                Total Man-Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_avg_mh:,.1f} Man-Hrs</span>
+                Total Man-Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_avg_mh:,.1f} Man-Hrs</span> &nbsp;|&nbsp; 
+                Total Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_avg_hours:,.1f} Hrs</span>
             </p>
         </div>
         """,
@@ -1830,13 +1833,16 @@ with tab_smart_calc:
   total_target_rec_hc += poll_target_hc
   total_target_mh += poll_target_mh
 
+  total_target_hours = total_target_rec_hc * 7.6
+
   st.markdown(
       f"""
         <div style="background: rgba(45,106,79,0.08); padding: 12px 18px; border-radius: 10px; border: 1px solid #C5DACB; margin-top: 10px; margin-bottom: 20px;">
             <p style="margin: 0; font-size: 1.05rem; color: #1B4332;">
                 <b>Target KPI Section Total:</b> 
                 <span style="font-weight: bold; color: #2D6A4F;">{total_target_rec_hc} Workers Recommended</span> &nbsp;|&nbsp; 
-                Total Man-Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_target_mh:,.1f} Man-Hrs</span>
+                Total Man-Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_target_mh:,.1f} Man-Hrs</span> &nbsp;|&nbsp; 
+                Total Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_target_hours:,.1f} Hrs</span>
             </p>
         </div>
         """,
