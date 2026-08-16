@@ -47,38 +47,38 @@ if 'staff_db' not in st.session_state:
     st.session_state.staff_db = [
         # GG Members
         {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "notes": "Must work"},
-        {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination", "None"], "notes": "Must work"},
-        {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning", "None"], "notes": "Must work"},
+        {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination"], "notes": "Must work"},
+        {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning"], "notes": "Must work"},
         
         # Leading Hands
-        {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand", "None", "None"], "notes": "Supervising"},
-        {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others", "None"], "notes": "Sulphur Pots"},
+        {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand"], "notes": "Supervising"},
+        {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others"], "notes": "Sulphur Pots"},
         
         # TOTC Members
         {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Truss Support", "Lowering"], "notes": "Min 30h"},
-        {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "De-leafing", "None"], "notes": "Min 30h"},
-        {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Pruning", "None"], "notes": "Min 30h"},
-        {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering", "None"], "notes": "Min 30h"},
-        {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support", "None"], "notes": "Min 30h"},
-        {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing", "None"], "notes": "Min 30h"},
+        {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": "Min 30h"},
+        {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Pruning"], "notes": "Min 30h"},
+        {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering"], "notes": "Min 30h"},
+        {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support"], "notes": "Min 30h"},
+        {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing"], "notes": "Min 30h"},
         
         # Ursons
-        {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "De-leafing", "None"], "notes": ""},
-        {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Truss Support", "None"], "notes": ""},
-        {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": ""},
-        {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Lowering", "None"], "notes": ""},
-        {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": ""},
-        {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Others", "None"], "notes": ""},
-        {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": ""},
-        {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": ""},
-        {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": "Mon-Wed Only"},
-        {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning", "None"], "notes": ""},
-        {"name": "Cassy", "category": "Urson", "skills": ["De-leafing", "None", "None"], "notes": ""},
-        {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support", "None"], "notes": ""},
-        {"name": "Lin", "category": "Urson", "skills": ["Truss Support", "Lowering", "None"], "notes": ""},
-        {"name": "Moka", "category": "Urson", "skills": ["Truss Support", "None", "None"], "notes": ""},
-        {"name": "Panyawat", "category": "Urson", "skills": ["Others", "None", "None"], "notes": "Cleaning"},
-        {"name": "AkashDeep", "category": "Urson", "skills": ["Others", "None", "None"], "notes": "Stem Supports"}
+        {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "notes": ""},
+        {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Truss Support"], "notes": ""},
+        {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
+        {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Lowering"], "notes": ""},
+        {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
+        {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Others"], "notes": ""},
+        {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
+        {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": ""},
+        {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "notes": "Mon-Wed Only"},
+        {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning"], "notes": ""},
+        {"name": "Cassy", "category": "Urson", "skills": ["De-leafing"], "notes": ""},
+        {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support"], "notes": ""},
+        {"name": "Lin", "category": "Urson", "skills": ["Truss Support", "Lowering"], "notes": ""},
+        {"name": "Moka", "category": "Urson", "skills": ["Truss Support"], "notes": ""},
+        {"name": "Panyawat", "category": "Urson", "skills": ["Others"], "notes": "Cleaning"},
+        {"name": "AkashDeep", "category": "Urson", "skills": ["Others"], "notes": "Stem Supports"}
     ]
 
 # Default Active Tasks Setup
@@ -99,15 +99,15 @@ st.markdown("---")
 # --- SIDEBAR: STAFF & SKILL CONTROLS ---
 st.sidebar.header("⚙️ Roster & Staff Controls")
 
-# Add New Staff with up to 3 skills
+# Add New Staff
 with st.sidebar.expander("➕ Add New Staff Member"):
     new_name = st.text_input("Name")
     new_cat = st.selectbox("Category", ["GG", "TOTC", "Urson", "Leading Hand"])
     
     opts = st.session_state.skills_list
-    skill1 = st.selectbox("Primary Skill (1st Priority)", opts)
-    skill2 = st.selectbox("Secondary Skill (2nd Priority)", ["None"] + opts)
-    skill3 = st.selectbox("Tertiary Skill (3rd Priority)", ["None"] + opts)
+    skill1 = st.selectbox("Primary Skill", opts)
+    skill2 = st.selectbox("Secondary Skill (Optional)", ["None"] + opts)
+    skill3 = st.selectbox("Tertiary Skill (Optional)", ["None"] + opts)
     
     new_note = st.text_input("Notes (e.g. Mon-Wed only)")
     
@@ -125,6 +125,33 @@ with st.sidebar.expander("➕ Add New Staff Member"):
             })
             st.sidebar.success(f"Added {new_name}")
             st.rerun()
+
+# Update / Train Existing Staff Skills
+with st.sidebar.expander("🎓 Update / Train Staff Skills"):
+    staff_names = [s["name"] for s in st.session_state.staff_db]
+    selected_member_name = st.selectbox("Select Team Member", options=[""] + staff_names)
+    
+    if selected_member_name:
+        # Find selected person
+        person = next((s for s in st.session_state.staff_db if s["name"] == selected_member_name), None)
+        if person:
+            curr_skills = person.get("skills", [])
+            p_skill = curr_skills[0] if len(curr_skills) > 0 else st.session_state.skills_list[0]
+            s_skill = curr_skills[1] if len(curr_skills) > 1 else "None"
+            t_skill = curr_skills[2] if len(curr_skills) > 2 else "None"
+            
+            opts = st.session_state.skills_list
+            up_skill1 = st.selectbox("Primary Skill", opts, index=opts.index(p_skill) if p_skill in opts else 0, key="up_s1")
+            up_skill2 = st.selectbox("Secondary Skill", ["None"] + opts, index=(["None"] + opts).index(s_skill) if s_skill in (["None"] + opts) else 0, key="up_s2")
+            up_skill3 = st.selectbox("Tertiary Skill", ["None"] + opts, index=(["None"] + opts).index(t_skill) if t_skill in (["None"] + opts) else 0, key="up_s3")
+            
+            if st.button("Save Trained Skills"):
+                new_s_arr = [up_skill1]
+                if up_skill2 != "None": new_s_arr.append(up_skill2)
+                if up_skill3 != "None": new_s_arr.append(up_skill3)
+                person["skills"] = new_s_arr
+                st.sidebar.success(f"Updated skills for {selected_member_name}")
+                st.rerun()
 
 # Master Skills List
 with st.sidebar.expander("🏷️ Master Skills List"):
@@ -225,14 +252,14 @@ for person in available_pool:
     assigned = False
     person_skills = person.get("skills", [person.get("primary_task", "Others")])
     
-    # Check Skill 1, Skill 2, Skill 3 in order
+    # Check Primary -> Secondary -> Tertiary skill match in background
     for sk in person_skills:
         if sk in task_requirements and len(allocated_roster[sk]) < task_requirements[sk]:
             allocated_roster[sk].append(person)
             assigned = True
             break
             
-    # Fallback for GG / TOTC staff if primary skills are full but other tasks need labor
+    # Fallback for GG / TOTC staff
     if not assigned and person["category"] in ["GG", "TOTC"]:
         for task, req_count in task_requirements.items():
             if task != "Leading Hand" and len(allocated_roster[task]) < req_count:
@@ -249,14 +276,14 @@ st.subheader(f"📊 Labor Allocation Plan (Total Requested: {total_requested} St
 col1, col2 = st.columns([1.2, 1])
 
 with col1:
-    st.markdown("### 📋 Roster Breakdown (Name | Category | Skills)")
+    st.markdown("### 📋 Roster Breakdown (Name | Category)")
     
     for task, members in allocated_roster.items():
         st.markdown(f"**{task} (Total: {len(members)} / {task_requirements[task]})**")
         for m in members:
-            skills_str = ", ".join(m.get("skills", []))
             note_str = f" — *{m['notes']}*" if m['notes'] else ""
-            st.write(f"- **{m['name']}** [{m['category']}] (Skills: {skills_str}){note_str}")
+            # Clean display: no skill list clutter on main screen
+            st.write(f"- **{m['name']}** [{m['category']}]{note_str}")
         st.markdown("---")
 
 with col2:
