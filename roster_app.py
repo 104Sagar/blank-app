@@ -439,7 +439,6 @@ def load_and_sanitize_staff_data():
             tp["Truss Pruning"] = tp.pop(old_k)
             modified = True
 
-        # Clean up specific unwanted associations if needed, but respect user configuration
         for sk in skills:
           if sk not in person["task_performance"]:
             default_t = st.session_state.task_targets.get(sk, 100.0)
@@ -484,7 +483,7 @@ if "active_tasks" not in st.session_state:
 st.title("📋 Glasshouse 3 - Weekly Labor Booking Planner")
 st.markdown("---")
 
-# --- NAVIGATION TABS (NOW INCLUDING LABOR PLANNING CALCULATOR) ---
+# --- NAVIGATION TABS ---
 (
     tab_planner,
     tab_kpi,
@@ -1095,42 +1094,66 @@ with tab_progress:
 
 
 # ==========================================
-# TAB 4: LABOR PLANNING CALCULATOR (INTEGRATED)
+# TAB 4: LABOR PLANNING CALCULATOR (UPDATED)
 # ==========================================
 with tab_calc:
   st.subheader("🌱 Labor Planning & Calculation Calculator")
   st.markdown(
-      "Calculate total required labor hours, area outputs, or stem counts"
-      " directly inside your planner."
+      "Calculate total required labor hours and stem counts based on your"
+      " glasshouse dimensions and task targets."
   )
 
-  c_in1, c_in2 = st.columns(2)
+  c_in1, c_in2, c_in3 = st.columns(3)
+
   with c_in1:
-    total_area_m2 = st.number_input(
-        "Total Glasshouse Area (m²)", min_value=100.0, value=10000.0, step=500.0
+    total_area_ha = st.number_input(
+        "Total Glasshouse Area (hectares)",
+        min_value=0.1,
+        value=5.0,
+        step=0.5,
     )
-    stems_per_m2 = st.number_input(
-        "Stems / Plants per m²", min_value=1.0, value=3.5, step=0.1
-    )
+    total_area_m2 = total_area_ha * 10000.0
+
   with c_in2:
-    target_task_select = st.selectbox(
-        "Select Task for Calculation", options=st.session_state.skills_list
+    num_rows = st.number_input(
+        "Number of Rows", min_value=1, value=260, step=5
     )
-    norm_rate_per_hour = st.number_input(
-        "Expected Output Rate per Hour (e.g. stems/hr)",
-        min_value=1.0,
-        value=65.0,
-        step=5.0,
+    plants_per_row = st.number_input(
+        "Plant Density per Row", min_value=1, value=480, step=10
     )
 
-  total_plants = total_area_m2 * stems_per_m2
+  with c_in3:
+    calc_task = st.selectbox(
+        "Select Task for Calculation",
+        options=st.session_state.skills_list,
+        key="calc_task_select",
+    )
+    default_kpi_for_task = st.session_state.task_targets.get(calc_task, 65.0)
+    target_kpi_rate = st.number_input(
+        "Target KPI (Output per Hour)",
+        min_value=1.0,
+        value=float(default_kpi_for_task),
+        step=5.0,
+        key="calc_target_kpi_input",
+    )
+
+  # Calculations
+  total_plants = num_rows * plants_per_row
+  plant_density_m2 = (
+      total_plants / total_area_m2 if total_area_m2 > 0 else 0.0
+  )
   estimated_total_hours = (
-      total_plants / norm_rate_per_hour if norm_rate_per_hour > 0 else 0
+      total_plants / target_kpi_rate if target_kpi_rate > 0 else 0
   )
   estimated_staff_needed_40h = estimated_total_hours / 40.0
 
   st.markdown("---")
-  res1, res2, res3 = st.columns(3)
-  res1.metric("Total Plant/Stem Count", f"{total_plants:,.0f}")
-  res2.metric("Total Estimated Labor Hours", f"{estimated_total_hours:,.1f} hrs")
-  res3.metric("Staff Required (at 40 hrs/week)", f"{estimated_staff_needed_40h:,.1f} workers")
+  res1, res2, res3, res4 = st.columns(4)
+  res1.metric("Total Plant / Stem Count", f"{total_plants:,.0f}")
+  res2.metric("Plant Density", f"{plant_density_m2:.2f} plants/m²")
+  res3.metric(
+      "Total Estimated Labor Hours", f"{estimated_total_hours:,.1f} hrs"
+  )
+  res4.metric(
+      "Staff Required (at 40 hrs/wk)", f"{estimated_staff_needed_40h:,.1f} workers"
+  )
