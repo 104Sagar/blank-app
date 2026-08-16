@@ -601,7 +601,6 @@ selected_leading_hands = st.session_state.get(
     "selected_leading_hands_filter", lh_names_init
 )
 
-# Eligible pool for regular tasks excludes Leading Hands
 regular_available_pool = [
     s
     for s in st.session_state.staff_db
@@ -664,7 +663,6 @@ allocate_by_tier(0, "Primary")
 allocate_by_tier(1, "Secondary")
 allocate_by_tier(2, "Tertiary")
 
-# Fallback for regular tasks
 for task_name, req_count in task_requirements.items():
   if task_name == "Leading Hand":
     continue
@@ -685,7 +683,6 @@ for task_name, req_count in task_requirements.items():
         {"person": fallback_person, "match_type": "No Match"}
     )
 
-# Handle Leading Hand task allocation strictly
 if "Leading Hand" in task_requirements:
   lh_req_count = task_requirements["Leading Hand"]
   active_lh_pool = [
@@ -698,7 +695,6 @@ if "Leading Hand" in task_requirements:
         {"person": lh, "match_type": "Primary"}
     )
 
-# Determine Unassigned (Absent) vs Extra Available Staff (Not Required)
 assigned_staff_flat = [
     m["person"] for mems in allocated_roster.values() for m in mems
 ]
@@ -746,7 +742,6 @@ with tab_copy_lists:
 
   c_copy1, c_copy2 = st.columns(2)
 
-  # 1. Grouped by Task Heading (Strictly tasks only)
   with c_copy1:
     st.markdown("**1. Grouped by Task Heading:**")
     task_text_output = "GH3 - WEEKLY LABOR PLAN (BY TASK)\n"
@@ -770,7 +765,6 @@ with tab_copy_lists:
 
     st.code(task_text_output, language="text")
 
-  # 2. Grouped by Employee Category (Strictly assigned staff only)
   with c_copy2:
     st.markdown("**2. Grouped by Employee Category:**")
     category_map = {"GG": [], "Leading Hand": [], "TOTC": [], "Urson": []}
@@ -809,7 +803,6 @@ with tab_copy_lists:
 
   st.markdown("---")
 
-  # 3. Separate 3rd Copy Box for Unassigned / Extra / Absent Staff
   st.markdown("**3. Standby, Unassigned & Extra Staff Lists:**")
   unassigned_text_output = "GH3 - STANDBY & UNASSIGNED STAFF\n"
   unassigned_text_output += "-----------------------------------\n\n"
@@ -1153,7 +1146,10 @@ with tab_smart_calc:
   gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
   active_tasks_list = list(st.session_state.active_tasks.keys())
 
-  st.markdown("### 📈 Staff Recommendations (Average KPI)")
+  # ==========================================
+  # SECTION 1: STAFF RECOMMENDATIONS (AVERAGE KPI)
+  # ==========================================
+  st.markdown("### 📈 Staff Recommendations (Based on Average KPI)")
   ash1, ash2, ash3, ash4 = st.columns([2, 1.2, 1.5, 1.5])
   ash1.markdown("**Task**")
   ash2.markdown("**Avg KPI**")
@@ -1251,7 +1247,7 @@ with tab_smart_calc:
     total_avg_rec_hc += rec_hc
     total_avg_mh += mh
 
-  # Pollination
+  # Pollination (Average KPI)
   asc1_p, asc2_p, asc3_p, asc4_p = st.columns([2, 1.2, 1.5, 1.5])
   asc1_p.markdown("**Pollination**")
   asc2_p.markdown("`2500 (Fixed)`")
@@ -1267,12 +1263,116 @@ with tab_smart_calc:
       f"""
         <div style="background: rgba(45,106,79,0.08); padding: 10px 14px; border-radius: 8px; border: 1px solid #C5DACB; margin-top: 8px; margin-bottom: 15px;">
             <p style="margin: 0; font-size: 0.95rem; color: #1B4332;">
-                <b>Total:</b> <b>{total_avg_rec_hc} Workers</b> | <b>{total_avg_mh:,.1f} Man-Hrs</b> | <b>{total_avg_hours:,.1f} Hrs</b>
+                <b>Average Total:</b> <b>{total_avg_rec_hc} Workers</b> | <b>{total_avg_mh:,.1f} Man-Hrs</b> | <b>{total_avg_hours:,.1f} Hrs</b>
             </p>
         </div>
         """,
       unsafe_allow_html=True,
   )
+
+  st.markdown("---")
+
+  # ==========================================
+  # SECTION 2: STAFF RECOMMENDATIONS (TARGET KPI)
+  # ==========================================
+  st.markdown("### 🎯 Staff Recommendations (Based on Target KPI)")
+  sh1, sh2, sh3, sh4 = st.columns([2, 1.2, 1.5, 1.5])
+  sh1.markdown("**Task**")
+  sh2.markdown("**Target KPI**")
+  sh3.markdown("**Exact HC**")
+  sh4.markdown("**Rec. HC**")
+  st.markdown("---")
+
+  target_kpi_calc_results = {}
+  total_target_rec_hc = 0
+  total_target_mh = 0.0
+
+  clip_shoot_target_rec = 0
+  for task_name in active_tasks_list:
+    if task_name == "Clip/Shoot & Pollination":
+      default_target = float(
+          st.session_state.task_targets.get(task_name, 100.0)
+      )
+      mh = total_gh_plants / default_target if default_target > 0 else 0
+      exact_hc = (
+          mh / gh_crop_work_hrs_per_week
+          if gh_crop_work_hrs_per_week > 0
+          else 0
+      )
+      clip_shoot_target_rec = math.ceil(exact_hc)
+      break
+
+  for task_name in active_tasks_list:
+    sc1, sc2, sc3, sc4 = st.columns([2, 1.2, 1.5, 1.5])
+    sc1.markdown(f"**{task_name}**")
+
+    if task_name in ["Leading Hand", "Others"]:
+      current_val = float(st.session_state.active_tasks[task_name])
+      sc2.markdown(
+          f"<small style='color:gray;'>Fixed ({current_val})</small>",
+          unsafe_allow_html=True,
+      )
+      mh = current_val * gh_crop_work_hrs_per_week
+      exact_hc = current_val
+      rec_hc = int(current_val)
+      sc3.markdown(f"`{exact_hc:.2f}`")
+      sc4.markdown(f"**{rec_hc}**")
+    else:
+      default_target = float(
+          st.session_state.task_targets.get(task_name, 100.0)
+      )
+      target_kpi_input = sc2.number_input(
+          f"Target {task_name}",
+          min_value=1.0,
+          value=default_target,
+          step=10.0,
+          key=f"smart_target_kpi_{task_name}",
+          label_visibility="collapsed",
+      )
+      st.session_state.task_targets[task_name] = target_kpi_input
+
+      mh = total_gh_plants / target_kpi_input if target_kpi_input > 0 else 0
+      exact_hc = (
+          mh / gh_crop_work_hrs_per_week
+          if gh_crop_work_hrs_per_week > 0
+          else 0
+      )
+      rec_hc = math.ceil(exact_hc)
+      sc3.markdown(f"`{exact_hc:.2f}`")
+      sc4.markdown(f"**{rec_hc}**")
+
+    target_kpi_calc_results[task_name] = {
+        "exact": exact_hc,
+        "recommended": rec_hc,
+        "man_hours": mh,
+    }
+    total_target_rec_hc += rec_hc
+    total_target_mh += mh
+
+  # Pollination (Target KPI)
+  sc1_p, sc2_p, sc3_p, sc4_p = st.columns([2, 1.2, 1.5, 1.5])
+  sc1_p.markdown("**Pollination**")
+  sc2_p.markdown("`2500 (Fixed)`")
+  poll_target_hc = max(0, 12 - clip_shoot_target_rec)
+  poll_target_mh = total_gh_plants / 2500.0
+  sc3_p.markdown(f"`{float(poll_target_hc):.2f}`")
+  sc4_p.markdown(f"**{poll_target_hc}**")
+  total_target_rec_hc += poll_target_hc
+  total_target_mh += poll_target_mh
+
+  total_target_hours = total_target_rec_hc * 7.6 * 5
+  st.markdown(
+      f"""
+        <div style="background: rgba(45,106,79,0.08); padding: 10px 14px; border-radius: 8px; border: 1px solid #C5DACB; margin-top: 8px; margin-bottom: 15px;">
+            <p style="margin: 0; font-size: 0.95rem; color: #1B4332;">
+                <b>Target Total:</b> <b>{total_target_rec_hc} Workers</b> | <b>{total_target_mh:,.1f} Man-Hrs</b> | <b>{total_target_hours:,.1f} Hrs</b>
+            </p>
+        </div>
+        """,
+      unsafe_allow_html=True,
+  )
+
+  st.markdown("---")
 
   if st.button("🔄 Sync Average KPI Headcounts to Tab 2", type="primary"):
     for task_name, res in avg_kpi_calc_results.items():
