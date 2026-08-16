@@ -86,8 +86,7 @@ st.markdown("""
 # --- MASTER SKILLS & DEFAULT TARGET KPIS ---
 if 'skills_list' not in st.session_state:
     st.session_state.skills_list = [
-        "Clip/Shoot",
-        "Pollination",
+        "Clip/Shoot & Pollination",
         "De-leafing",
         "Lowering",
         "Truss Cluster Prune",
@@ -99,8 +98,7 @@ if 'skills_list' not in st.session_state:
 
 if 'task_targets' not in st.session_state:
     st.session_state.task_targets = {
-        "Clip/Shoot": 674.0,
-        "Pollination": 2500.0,
+        "Clip/Shoot & Pollination": 674.0,
         "De-leafing": 800.0,
         "Lowering": 1333.0,
         "Truss Cluster Prune": 1200.0,
@@ -113,25 +111,25 @@ if 'task_targets' not in st.session_state:
 # Default Staff Data
 DEFAULT_STAFF_DB = [
     {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "task_performance": {"Truss Support": {"kpi": 130.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
-    {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot", "Pollination"], "task_performance": {"Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}, "Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Pollination": {"kpi": 2500.0, "quality": "👍", "notes": ""}}},
+    {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot & Pollination"], "task_performance": {"Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}, "Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
     {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning"], "task_performance": {"Truss Support": {"kpi": 110.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 95.0, "quality": "👍", "notes": ""}}},
     {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand"], "task_performance": {"Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
     {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others"], "task_performance": {"Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""}, "Others": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
-    {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot", "Pollination", "Truss Support"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Pollination": {"kpi": 2500.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}}},
-    {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot", "De-leafing"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
-    {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot", "Pruning"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
+    {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot & Pollination", "Truss Support"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}}},
+    {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot & Pollination", "De-leafing"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
+    {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot & Pollination", "Pruning"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
     {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""}}},
     {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 125.0, "quality": "👍", "notes": ""}}},
     {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing"], "task_performance": {"Others": {"kpi": 100.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
-    {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot", "De-leafing"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
-    {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot", "Truss Support"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}}},
-    {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
-    {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot", "Lowering"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""}}},
-    {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
-    {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot", "Others"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Others": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
-    {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
-    {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
-    {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot & Pollination", "De-leafing"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
+    {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot & Pollination", "Truss Support"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}}},
+    {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot & Pollination"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot & Pollination", "Lowering"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""}}},
+    {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot & Pollination"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot & Pollination", "Others"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Others": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
+    {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot & Pollination"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot & Pollination"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot & Pollination"], "task_performance": {"Clip/Shoot & Pollination": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
     {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
     {"name": "Cassy", "category": "Urson", "skills": ["De-leafing"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
     {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 115.0, "quality": "👍", "notes": ""}}},
@@ -183,8 +181,7 @@ if 'staff_db' not in st.session_state:
 if 'active_tasks' not in st.session_state:
     st.session_state.active_tasks = {
         "Leading Hand": 2,
-        "Clip/Shoot": 6,
-        "Pollination": 6,
+        "Clip/Shoot & Pollination": 12,
         "De-leafing": 5,
         "Lowering": 4,
         "Truss Cluster Prune": 3
@@ -381,10 +378,8 @@ with tab_planner:
 
     st.markdown("---")
 
-    # --- ALLOCATION ENGINE: GG & TOTC Protected Minimums -> Primary -> Secondary -> Tertiary with KPI Competition ---
+    # --- ALLOCATION ENGINE ---
     available_pool = [s for s in st.session_state.staff_db if s["name"] not in absent_staff]
-    
-    # Category priority: GG (1) and TOTC/Leading Hand (2) prioritized to ensure minimum requirements/hours, Urson (3)
     cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
 
     allocated_roster = {task: [] for task in task_requirements}
@@ -415,18 +410,14 @@ with tab_planner:
                 if not candidates_for_task:
                     break 
                 
-                # Sort: Category rank first (protecting GG/TOTC), then KPI score (competing for remaining spots)
                 candidates_for_task.sort(key=lambda x: (x["cat_rank"], -x["kpi"], x["quality"]))
                 best_cand = candidates_for_task[0]
-                
                 allocated_roster[task_name].append(best_cand["person"])
 
     # PASS 1: Primary Skills
     allocate_by_tier(0, "Primary")
-
     # PASS 2: Secondary Skills
     allocate_by_tier(1, "Secondary")
-
     # PASS 3: Tertiary Skills
     allocate_by_tier(2, "Tertiary")
 
