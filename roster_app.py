@@ -209,9 +209,9 @@ with tab_planner:
             new_cat = st.selectbox("Category", ["GG", "TOTC", "Urson", "Leading Hand"])
             
             opts = st.session_state.skills_list
-            skill1 = st.selectbox("Primary Skill", opts)
-            skill2 = st.selectbox("Secondary Skill (Optional)", ["None"] + opts)
-            skill3 = st.selectbox("Tertiary Skill (Optional)", ["None"] + opts)
+            skill1 = st.selectbox("Primary Skill (1st Priority)", opts)
+            skill2 = st.selectbox("Secondary Skill (2nd Priority, Optional)", ["None"] + opts)
+            skill3 = st.selectbox("Tertiary Skill (3rd Priority, Optional)", ["None"] + opts)
             
             submit_add = st.form_submit_button("Add Staff")
             if submit_add and new_name.strip():
@@ -247,9 +247,9 @@ with tab_planner:
                 t_skill = curr_skills[2] if len(curr_skills) > 2 and curr_skills[2] in opts else "None"
                 
                 with st.form(key=f"update_skills_form_{selected_member_name}"):
-                    up_skill1 = st.selectbox("Primary Skill", opts, index=opts.index(p_skill))
-                    up_skill2 = st.selectbox("Secondary Skill", ["None"] + opts, index=(["None"] + opts).index(s_skill))
-                    up_skill3 = st.selectbox("Tertiary Skill", ["None"] + opts, index=(["None"] + opts).index(t_skill))
+                    up_skill1 = st.selectbox("Primary Skill (1st Priority)", opts, index=opts.index(p_skill))
+                    up_skill2 = st.selectbox("Secondary Skill (2nd Priority)", ["None"] + opts, index=(["None"] + opts).index(s_skill))
+                    up_skill3 = st.selectbox("Tertiary Skill (3rd Priority)", ["None"] + opts, index=(["None"] + opts).index(t_skill))
                     
                     submit_update = st.form_submit_button("Save Trained Skills")
                     if submit_update:
@@ -371,53 +371,71 @@ with tab_planner:
 
     st.markdown("---")
 
-    # --- TWO-PASS ALLOCATION ENGINE ---
+    # --- ALLOCATION ENGINE: GG & TOTC Protected Minimums -> Primary -> Secondary -> Tertiary with KPI Competition ---
     available_pool = [s for s in st.session_state.staff_db if s["name"] not in absent_staff]
+    
+    # Category priority: GG (1) and TOTC/Leading Hand (2) prioritized to ensure minimum requirements/hours, Urson (3)
     cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
 
     allocated_roster = {task: [] for task in task_requirements}
 
-    # PASS 1: Strict skill-matching allocation first
-    for task_name, req_count in task_requirements.items():
-        candidates_for_task = []
-        for person in available_pool:
-            already_assigned_tasks = [t for t, mems in allocated_roster.items() if person in mems]
-            if not already_assigned_tasks:
-                skills = person.get("skills", [])
-                if task_name in skills:
-                    t_perf = person.get("task_performance", {}).get(task_name, {"kpi": 100.0, "quality": "👍", "notes": ""})
-                    kpi_score = t_perf.get("kpi", 100.0)
-                    qual_score = 0 if t_perf.get("quality", "👍") == "👍" else 1
-                    cat_rank = cat_priority.get(person["category"], 4)
-                    
-                    candidates_for_task.append({
-                        "person": person,
-                        "kpi": kpi_score,
-                        "quality": qual_score,
-                        "cat_rank": cat_rank
-                    })
-        
-        candidates_for_task.sort(key=lambda x: (-x["kpi"], x["quality"], x["cat_rank"]))
-        
-        for cand in candidates_for_task:
-            if len(allocated_roster[task_name]) < req_count:
-                allocated_roster[task_name].append(cand["person"])
+    def allocate_by_tier(tier_index, label_name):
+        for task_name, req_count in task_requirements.items():
+            while len(allocated_roster[task_name]) < req_count:
+                assigned_flat = [m for mems in allocated_roster.values() for m in mems]
+                unassigned_pool = [p for p in available_pool if p not in assigned_flat]
+                
+                candidates_for_task = []
+                for person in unassigned_pool:
+                    skills = person.get("skills", [])
+                    if len(skills) > tier_index and skills[tier_index] == task_name:
+                        t_perf = person.get("task_performance", {}).get(task_name, {"kpi": 100.0, "quality": "👍", "notes": ""})
+                        kpi_score = t_perf.get("kpi", 100.0)
+                        qual_score = 0 if t_perf.get("quality", "👍") == "👍" else 1
+                        cat_rank = cat_priority.get(person["category"], 4)
+                        
+                        candidates_for_task.append({
+                            "person": person,
+                            "kpi": kpi_score,
+                            "quality": qual_score,
+                            "cat_rank": cat_rank,
+                            "tier_label": label_name
+                        })
+                
+                if not candidates_for_task:
+                    break 
+                
+                # Sort: 
+                # 1. Category rank (GG & TOTC first to satisfy minimums/contracted hours)
+                # 2. KPI Score (competing with highest KPI within category/tier)
+                # 3. Quality rating
+                candidates_for_task.sort(key=lambda x: (x["cat_rank"], -x["kpi"], x["quality"]))
+                best_cand = candidates_for_task[0]
+                
+                allocated_roster[task_name].append(best_cand["person"])
 
-    # PASS 2: Fallback fill at last if positions remain unfilled (assign unassigned staff even without exact skill match)
+    # PASS 1: Assign based on Primary Skill (Index 0)
+    allocate_by_tier(0, "Primary")
+
+    # PASS 2: Assign based on Secondary Skill (Index 1)
+    allocate_by_tier(1, "Secondary")
+
+    # PASS 3: Assign based on Tertiary Skill (Index 2)
+    allocate_by_tier(2, "Tertiary")
+
+    # PASS 4: Fallback fill for remaining unfilled spots
     for task_name, req_count in task_requirements.items():
         while len(allocated_roster[task_name]) < req_count:
             assigned_flat = [m for mems in allocated_roster.values() for m in mems]
             unassigned_pool = [p for p in available_pool if p not in assigned_flat]
             
             if not unassigned_pool:
-                break # No staff left at all
+                break 
             
-            # Sort remaining unassigned staff by category priority as a fallback
-            unassigned_pool.sort(key=lambda x: cat_priority.get(x["category"], 4))
+            unassigned_pool.sort(key=lambda x: (cat_priority.get(x["category"], 4)))
             fallback_person = unassigned_pool[0]
             allocated_roster[task_name].append(fallback_person)
 
-    # Determine unassigned available staff properly
     assigned_staff_flat = [m for mems in allocated_roster.values() for m in mems]
     unassigned_staff = [p for p in available_pool if p not in assigned_staff_flat]
 
@@ -435,11 +453,16 @@ with tab_planner:
                 t_note = m.get('task_performance', {}).get(task, {}).get('notes', '')
                 note_str = f" (*{t_note}*)" if t_note else ""
                 
-                # Check if person has skill for badge/indicator
-                has_skill = task in m.get("skills", [])
-                skill_badge = "" if has_skill else " ⚠️ *(Assigned as fallback)*"
+                skills = m.get("skills", [])
+                badge = ""
+                if task in skills:
+                    idx = skills.index(task)
+                    tier_names = {0: "Primary", 1: "Secondary", 2: "Tertiary"}
+                    badge = f" 🏷️ *({tier_names.get(idx, 'Skilled')})*"
+                else:
+                    badge = " ⚠️ *(Assigned as fallback)*"
                 
-                st.write(f"- **{m['name']}** [{m['category']}]{note_str}{skill_badge}")
+                st.write(f"- **{m['name']}** [{m['category']}]{note_str}{badge}")
             st.markdown("---")
 
     with col2:
@@ -575,11 +598,12 @@ with tab_progress:
                 col_p1, col_p2 = st.columns([1, 1.5])
                 
                 with col_p1:
-                    st.markdown("##### 🛠️ Certified Skills")
+                    st.markdown("##### 🛠️ Certified Skills (Primary $\rightarrow$ Secondary $\rightarrow$ Tertiary)")
                     skills = person.get("skills", [])
                     if skills:
-                        for sk in skills:
-                            st.markdown(f"- ✅ {sk}")
+                        for idx, sk in enumerate(skills):
+                            tier_label = ["Primary", "Secondary", "Tertiary"][idx] if idx < 3 else "Extra"
+                            st.markdown(f"- ✅ **{tier_label}:** {sk}")
                     else:
                         st.markdown("_No skills assigned_")
                 
