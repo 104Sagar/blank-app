@@ -83,13 +83,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- MASTER SKILLS & TARGET KPIS ---
+# --- MASTER SKILLS & DEFAULT TARGET KPIS ---
 if 'skills_list' not in st.session_state:
     st.session_state.skills_list = [
-        "Clip/Shoot + Pollination",
-        "Truss Support",
+        "Clip/Shoot",
+        "Pollination",
         "De-leafing",
         "Lowering",
+        "Truss Cluster Prune",
+        "Truss Support",
         "Pruning",
         "Leading Hand",
         "Others"
@@ -97,41 +99,43 @@ if 'skills_list' not in st.session_state:
 
 if 'task_targets' not in st.session_state:
     st.session_state.task_targets = {
-        "Clip/Shoot + Pollination": 100.0,
+        "Clip/Shoot": 674.0,
+        "Pollination": 2500.0,
+        "De-leafing": 800.0,
+        "Lowering": 1333.0,
+        "Truss Cluster Prune": 1200.0,
         "Truss Support": 120.0,
-        "De-leafing": 150.0,
-        "Lowering": 80.0,
         "Pruning": 90.0,
         "Leading Hand": 100.0,
         "Others": 100.0
     }
 
-# Default Staff Data with per-task performance dictionaries
+# Default Staff Data
 DEFAULT_STAFF_DB = [
-    {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "task_performance": {"Truss Support": {"kpi": 130.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 85.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 150.0, "quality": "👍", "notes": ""}}},
-    {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination"], "task_performance": {"Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}, "Clip/Shoot + Pollination": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
+    {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "task_performance": {"Truss Support": {"kpi": 130.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
+    {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot", "Pollination"], "task_performance": {"Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}, "Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Pollination": {"kpi": 2500.0, "quality": "👍", "notes": ""}}},
     {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning"], "task_performance": {"Truss Support": {"kpi": 110.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 95.0, "quality": "👍", "notes": ""}}},
     {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand"], "task_performance": {"Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
     {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others"], "task_performance": {"Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""}, "Others": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
-    {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Truss Support", "Lowering"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 105.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 80.0, "quality": "👍", "notes": ""}}},
-    {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 100.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 140.0, "quality": "👍", "notes": ""}}},
-    {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Pruning"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 95.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
-    {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering"], "task_performance": {"De-leafing": {"kpi": 155.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
-    {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support"], "task_performance": {"De-leafing": {"kpi": 150.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 125.0, "quality": "👍", "notes": ""}}},
-    {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing"], "task_performance": {"Others": {"kpi": 100.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 140.0, "quality": "👍", "notes": ""}}},
-    {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "De-leafing"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 100.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 145.0, "quality": "👍", "notes": ""}}},
-    {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Truss Support"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 105.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}}},
-    {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 95.0, "quality": "👍", "notes": ""}}},
-    {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Lowering"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 90.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 85.0, "quality": "👍", "notes": ""}}},
-    {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
-    {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Others"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 100.0, "quality": "👍", "notes": ""}, "Others": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
-    {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 95.0, "quality": "👍", "notes": ""}}},
-    {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
-    {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot + Pollination"], "task_performance": {"Clip/Shoot + Pollination": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
-    {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning"], "task_performance": {"De-leafing": {"kpi": 130.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
-    {"name": "Cassy", "category": "Urson", "skills": ["De-leafing"], "task_performance": {"De-leafing": {"kpi": 140.0, "quality": "👍", "notes": ""}}},
-    {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support"], "task_performance": {"De-leafing": {"kpi": 135.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 115.0, "quality": "👍", "notes": ""}}},
-    {"name": "Lin", "category": "Urson", "skills": ["Truss Support", "Lowering"], "task_performance": {"Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 85.0, "quality": "👍", "notes": ""}}},
+    {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot", "Pollination", "Truss Support"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Pollination": {"kpi": 2500.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}}},
+    {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot", "De-leafing"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
+    {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot", "Pruning"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
+    {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""}}},
+    {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 125.0, "quality": "👍", "notes": ""}}},
+    {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing"], "task_performance": {"Others": {"kpi": 100.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
+    {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot", "De-leafing"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
+    {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot", "Truss Support"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}}},
+    {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot", "Lowering"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""}}},
+    {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot", "Others"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}, "Others": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
+    {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot"], "task_performance": {"Clip/Shoot": {"kpi": 674.0, "quality": "👍", "notes": ""}}},
+    {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}, "Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""}}},
+    {"name": "Cassy", "category": "Urson", "skills": ["De-leafing"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}}},
+    {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support"], "task_performance": {"De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}, "Truss Support": {"kpi": 115.0, "quality": "👍", "notes": ""}}},
+    {"name": "Lin", "category": "Urson", "skills": ["Truss Support", "Lowering"], "task_performance": {"Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""}, "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""}}},
     {"name": "Moka", "category": "Urson", "skills": ["Truss Support"], "task_performance": {"Truss Support": {"kpi": 110.0, "quality": "👍", "notes": ""}}},
     {"name": "Panyawat", "category": "Urson", "skills": ["Others"], "task_performance": {"Others": {"kpi": 100.0, "quality": "👍", "notes": ""}}},
     {"name": "AkashDeep", "category": "Urson", "skills": ["Others"], "task_performance": {"Others": {"kpi": 100.0, "quality": "👍", "notes": ""}}}
@@ -153,7 +157,8 @@ def load_and_sanitize_staff_data():
                 
                 for sk in person.get("skills", []):
                     if sk not in person["task_performance"]:
-                        person["task_performance"][sk] = {"kpi": 100.0, "quality": "👍", "notes": ""}
+                        default_t = st.session_state.task_targets.get(sk, 100.0)
+                        person["task_performance"][sk] = {"kpi": default_t, "quality": "👍", "notes": ""}
                         modified = True
                 
                 if person.get("notes") in LEGACY_NOTES_TO_REMOVE:
@@ -178,10 +183,11 @@ if 'staff_db' not in st.session_state:
 if 'active_tasks' not in st.session_state:
     st.session_state.active_tasks = {
         "Leading Hand": 2,
-        "Clip/Shoot + Pollination": 12,
-        "Truss Support": 5,
+        "Clip/Shoot": 6,
+        "Pollination": 6,
         "De-leafing": 5,
-        "Others": 3
+        "Lowering": 4,
+        "Truss Cluster Prune": 3
     }
 
 # Title
@@ -219,7 +225,10 @@ with tab_planner:
                 if skill2 != "None": skills_arr.append(skill2)
                 if skill3 != "None": skills_arr.append(skill3)
                 
-                t_perf = {sk: {"kpi": 100.0, "quality": "👍", "notes": ""} for sk in skills_arr}
+                t_perf = {}
+                for sk in skills_arr:
+                    def_t = st.session_state.task_targets.get(sk, 100.0)
+                    t_perf[sk] = {"kpi": def_t, "quality": "👍", "notes": ""}
                 
                 st.session_state.staff_db.append({
                     "name": new_name.strip(), 
@@ -262,19 +271,20 @@ with tab_planner:
                             person["task_performance"] = {}
                         for sk in new_s_arr:
                             if sk not in person["task_performance"]:
-                                person["task_performance"][sk] = {"kpi": 100.0, "quality": "👍", "notes": ""}
+                                def_t = st.session_state.task_targets.get(sk, 100.0)
+                                person["task_performance"][sk] = {"kpi": def_t, "quality": "👍", "notes": ""}
                                 
                         save_staff_data(st.session_state.staff_db)
                         st.sidebar.success(f"Updated skills for {selected_member_name}!")
                         st.rerun()
 
-    # 3. Master Skills List & Target KPIs
+    # 3. Master Skills List & Target KPIs (Editable)
     with st.sidebar.expander("🎯 Master Skills & Target KPIs"):
-        st.markdown("**Set Target KPI per Task:**")
+        st.markdown("**Set Target KPI per Task (Editable):**")
         updated_targets = {}
         for s in st.session_state.skills_list:
             current_target = st.session_state.task_targets.get(s, 100.0)
-            t_val = st.number_input(f"{s}", min_value=0.0, value=float(current_target), step=5.0, key=f"target_kpi_{s}")
+            t_val = st.number_input(f"{s}", min_value=0.0, value=float(current_target), step=1.0, key=f"target_kpi_{s}")
             updated_targets[s] = t_val
         st.session_state.task_targets = updated_targets
 
@@ -389,8 +399,9 @@ with tab_planner:
                 for person in unassigned_pool:
                     skills = person.get("skills", [])
                     if len(skills) > tier_index and skills[tier_index] == task_name:
-                        t_perf = person.get("task_performance", {}).get(task_name, {"kpi": 100.0, "quality": "👍", "notes": ""})
-                        kpi_score = t_perf.get("kpi", 100.0)
+                        def_t = st.session_state.task_targets.get(task_name, 100.0)
+                        t_perf = person.get("task_performance", {}).get(task_name, {"kpi": def_t, "quality": "👍", "notes": ""})
+                        kpi_score = t_perf.get("kpi", def_t)
                         qual_score = 0 if t_perf.get("quality", "👍") == "👍" else 1
                         cat_rank = cat_priority.get(person["category"], 4)
                         
@@ -398,29 +409,25 @@ with tab_planner:
                             "person": person,
                             "kpi": kpi_score,
                             "quality": qual_score,
-                            "cat_rank": cat_rank,
-                            "tier_label": label_name
+                            "cat_rank": cat_rank
                         })
                 
                 if not candidates_for_task:
                     break 
                 
-                # Sort: 
-                # 1. Category rank (GG & TOTC first to satisfy minimums/contracted hours)
-                # 2. KPI Score (competing with highest KPI within category/tier)
-                # 3. Quality rating
+                # Sort: Category rank first (protecting GG/TOTC), then KPI score (competing for remaining spots)
                 candidates_for_task.sort(key=lambda x: (x["cat_rank"], -x["kpi"], x["quality"]))
                 best_cand = candidates_for_task[0]
                 
                 allocated_roster[task_name].append(best_cand["person"])
 
-    # PASS 1: Assign based on Primary Skill (Index 0)
+    # PASS 1: Primary Skills
     allocate_by_tier(0, "Primary")
 
-    # PASS 2: Assign based on Secondary Skill (Index 1)
+    # PASS 2: Secondary Skills
     allocate_by_tier(1, "Secondary")
 
-    # PASS 3: Assign based on Tertiary Skill (Index 2)
+    # PASS 3: Tertiary Skills
     allocate_by_tier(2, "Tertiary")
 
     # PASS 4: Fallback fill for remaining unfilled spots
@@ -452,17 +459,7 @@ with tab_planner:
             for m in members:
                 t_note = m.get('task_performance', {}).get(task, {}).get('notes', '')
                 note_str = f" (*{t_note}*)" if t_note else ""
-                
-                skills = m.get("skills", [])
-                badge = ""
-                if task in skills:
-                    idx = skills.index(task)
-                    tier_names = {0: "Primary", 1: "Secondary", 2: "Tertiary"}
-                    badge = f" 🏷️ *({tier_names.get(idx, 'Skilled')})*"
-                else:
-                    badge = " ⚠️ *(Assigned as fallback)*"
-                
-                st.write(f"- **{m['name']}** [{m['category']}]{note_str}{badge}")
+                st.write(f"- **{m['name']}** [{m['category']}]{note_str}")
             st.markdown("---")
 
     with col2:
@@ -531,11 +528,11 @@ with tab_planner:
 # ==========================================
 with tab_kpi:
     st.subheader("⭐ Weekly Task-Specific KPI & Quality Evaluation")
-    st.markdown("Since staff can excel in one task and be average in another, set individual KPI scores and quality ratings **per task** for each person below.")
+    st.markdown("Set individual KPI scores and quality ratings **per task** for each team member below.")
     
     selected_task_to_eval = st.selectbox("Select Task to Evaluate / Update:", options=st.session_state.skills_list, key="eval_task_select")
     target_val_for_task = st.session_state.task_targets.get(selected_task_to_eval, 100.0)
-    st.info(f"🎯 Current Target KPI for **{selected_task_to_eval}**: **{target_val_for_task}** (You can modify target KPIs in the sidebar)")
+    st.info(f"🎯 Current Target KPI for **{selected_task_to_eval}**: **{target_val_for_task}** (Adjustable in the sidebar)")
     
     relevant_staff = [s for s in st.session_state.staff_db if selected_task_to_eval in s.get("skills", [])]
     
@@ -557,9 +554,9 @@ with tab_kpi:
                 
                 c1.markdown(f"**{person['name']}** <br><small style='color:gray;'>{person['category']}</small>", unsafe_allow_html=True)
                 
-                p_perf = person.get("task_performance", {}).get(selected_task_to_eval, {"kpi": 100.0, "quality": "👍", "notes": ""})
+                p_perf = person.get("task_performance", {}).get(selected_task_to_eval, {"kpi": target_val_for_task, "quality": "👍", "notes": ""})
                 
-                kpi_in = c2.number_input("KPI", min_value=0.0, value=float(p_perf.get("kpi", 100.0)), step=5.0, key=f"kpi_{person['name']}_{selected_task_to_eval}", label_visibility="collapsed")
+                kpi_in = c2.number_input("KPI", min_value=0.0, value=float(p_perf.get("kpi", target_val_for_task)), step=1.0, key=f"kpi_{person['name']}_{selected_task_to_eval}", label_visibility="collapsed")
                 qual_in = c3.selectbox("Quality", ["👍", "👎"], index=0 if p_perf.get("quality", "👍") == "👍" else 1, key=f"qual_{person['name']}_{selected_task_to_eval}", label_visibility="collapsed")
                 note_in = c4.text_input("Notes", value=p_perf.get("notes", ""), key=f"note_{person['name']}_{selected_task_to_eval}", label_visibility="collapsed", placeholder="e.g. Excellent speed")
                 
@@ -588,7 +585,7 @@ with tab_kpi:
 # ==========================================
 with tab_progress:
     st.subheader("📈 Staff Skills Directory & Progress Overview")
-    st.markdown("Comprehensive view of all team members, their certified skills, and tracked performance records.")
+    st.markdown("Comprehensive view of all team members, certified skills, and performance records.")
     
     search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
     
