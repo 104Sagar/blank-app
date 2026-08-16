@@ -1819,7 +1819,7 @@ with tab_kpi:
 
 
 # ==========================================
-# TAB 6: STAFF PROGRESS & SKILLS VIEW (FIXED HTML TAG DISPLAY)
+# TAB 6: STAFF PROGRESS & SKILLS VIEW
 # ==========================================
 with tab_progress:
   st.subheader("📈 Staff Skills & Performance Records")
@@ -1904,9 +1904,8 @@ with tab_performance:
 with tab_row_tracker:
   st.subheader("📌 Task-Specific Greenhouse Row Progress Tracker")
   st.markdown(
-      "Track completed rows independently per task (excluding management and"
-      " support tasks), along with accurate remaining work hours and work per"
-      " staff."
+      "Set the start and end row for each task, track rows finished, add notes"
+      " for missing rows, and view estimated remaining work."
   )
 
   row_progress_tasks = [
@@ -1917,23 +1916,20 @@ with tab_row_tracker:
 
   for t_name in row_progress_tasks:
     if t_name not in st.session_state.task_row_progress:
-      st.session_state.task_row_progress[t_name] = 0
+      st.session_state.task_row_progress[t_name] = {
+          "start_row": 1,
+          "end_row": 0,
+          "notes": "",
+      }
 
   for task_name in row_progress_tasks:
-    current_task_completed = st.session_state.task_row_progress.get(
-        task_name, 0
-    )
+    task_data = st.session_state.task_row_progress[task_name]
+    if not isinstance(task_data, dict):
+      task_data = {"start_row": 1, "end_row": int(task_data), "notes": ""}
 
-    slider_key = f"slider_{task_name}"
-    if slider_key not in st.session_state:
-      st.session_state[slider_key] = current_task_completed
-
-    kpi_val = float(
-        st.session_state.saved_avg_kpis.get(
-            task_name, st.session_state.task_targets.get(task_name, 600.0)
-        )
-    )
-    task_total_mh = total_gh_plants / kpi_val if kpi_val > 0 else 0.0
+    curr_start = task_data.get("start_row", 1)
+    curr_end = task_data.get("end_row", 0)
+    curr_notes = task_data.get("notes", "")
 
     st.markdown(
         f"<div style='background: #FFFFFF; padding: 14px 18px; border-radius: 10px; border: 1px solid #B5CBC0; box-shadow: 0 2px 6px rgba(0,0,0,0.02); margin-bottom: 15px;'>"
@@ -1941,91 +1937,56 @@ with tab_row_tracker:
         unsafe_allow_html=True,
     )
 
-    c_b1, c_b2, c_b3, c_b4 = st.columns(4)
-    if c_b1.button("➕ 10 Rows", key=f"p10_{task_name}"):
-      new_val = min(
-          260, st.session_state.task_row_progress.get(task_name, 0) + 10
-      )
-      st.session_state.task_row_progress[task_name] = new_val
-      st.session_state[slider_key] = new_val
-      save_settings({
-          "completed_rows_count": saved_settings.get(
-              "completed_rows_count", 0
-          ),
-          "active_tasks": st.session_state.active_tasks,
-          "task_targets": st.session_state.task_targets,
-          "avg_kpis": st.session_state.saved_avg_kpis,
-          "task_row_progress": st.session_state.task_row_progress,
-      })
-      st.rerun()
-
-    if c_b2.button("➕ 50 Rows", key=f"p50_{task_name}"):
-      new_val = min(
-          260, st.session_state.task_row_progress.get(task_name, 0) + 50
-      )
-      st.session_state.task_row_progress[task_name] = new_val
-      st.session_state[slider_key] = new_val
-      save_settings({
-          "completed_rows_count": saved_settings.get(
-              "completed_rows_count", 0
-          ),
-          "active_tasks": st.session_state.active_tasks,
-          "task_targets": st.session_state.task_targets,
-          "avg_kpis": st.session_state.saved_avg_kpis,
-          "task_row_progress": st.session_state.task_row_progress,
-      })
-      st.rerun()
-
-    if c_b3.button("Reset", key=f"preset_{task_name}"):
-      st.session_state.task_row_progress[task_name] = 0
-      st.session_state[slider_key] = 0
-      save_settings({
-          "completed_rows_count": saved_settings.get(
-              "completed_rows_count", 0
-          ),
-          "active_tasks": st.session_state.active_tasks,
-          "task_targets": st.session_state.task_targets,
-          "avg_kpis": st.session_state.saved_avg_kpis,
-          "task_row_progress": st.session_state.task_row_progress,
-      })
-      st.rerun()
-
-    if c_b4.button("Complete All", key=f"pall_{task_name}"):
-      st.session_state.task_row_progress[task_name] = 260
-      st.session_state[slider_key] = 260
-      save_settings({
-          "completed_rows_count": saved_settings.get(
-              "completed_rows_count", 0
-          ),
-          "active_tasks": st.session_state.active_tasks,
-          "task_targets": st.session_state.task_targets,
-          "avg_kpis": st.session_state.saved_avg_kpis,
-          "task_row_progress": st.session_state.task_row_progress,
-      })
-      st.rerun()
-
-
-    def update_task_slider(t=task_name):
-      curr_sets = load_settings()
-      if "task_row_progress" not in curr_sets:
-        curr_sets["task_row_progress"] = {}
-      val = st.session_state[f"slider_{t}"]
-      curr_sets["task_row_progress"][t] = val
-      save_settings(curr_sets)
-
-
-    slider_val = st.slider(
-        f"Rows Completed for {task_name}:",
+    c_r1, c_r2 = st.columns(2)
+    new_start = c_r1.number_input(
+        "Start Row",
+        min_value=1,
+        max_value=260,
+        value=int(curr_start),
+        key=f"start_row_{task_name}",
+    )
+    new_end = c_r2.number_input(
+        "End Row / Completed Up To",
         min_value=0,
         max_value=260,
-        step=1,
-        key=slider_key,
-        on_change=update_task_slider,
+        value=int(curr_end),
+        key=f"end_row_{task_name}",
     )
-    st.session_state.task_row_progress[task_name] = slider_val
+
+    new_notes = st.text_input(
+        "Notes for Missing / Skipped Rows",
+        value=curr_notes,
+        key=f"notes_row_{task_name}",
+        placeholder="e.g., Rows 45-50 skipped due to maintenance",
+    )
+
+    if (
+        new_start != curr_start
+        or new_end != curr_end
+        or new_notes != curr_notes
+    ):
+      st.session_state.task_row_progress[task_name] = {
+          "start_row": new_start,
+          "end_row": new_end,
+          "notes": new_notes,
+      }
+      saved_settings["task_row_progress"] = st.session_state.task_row_progress
+      save_settings(saved_settings)
+      st.rerun()
 
     # Calculations
-    remaining_rows_count = max(0, 260 - slider_val)
+    if new_end >= new_start:
+      rows_finished = new_end - new_start + 1
+    else:
+      rows_finished = 0
+
+    remaining_rows_count = max(0, 260 - rows_finished)
+    kpi_val = float(
+        st.session_state.saved_avg_kpis.get(
+            task_name, st.session_state.task_targets.get(task_name, 600.0)
+        )
+    )
+    task_total_mh = total_gh_plants / kpi_val if kpi_val > 0 else 0.0
     remaining_work_hours = (remaining_rows_count / 260.0) * task_total_mh
     assigned_staff_qty = st.session_state.active_tasks.get(task_name, 1)
     remaining_work_per_staff = (
@@ -2034,15 +1995,15 @@ with tab_row_tracker:
         else 0.0
     )
 
-    pct = (slider_val / 260.0) * 100.0
+    pct = (rows_finished / 260.0) * 100.0
     st.markdown(
-        f"<p style='margin: 4px 0 0 0; color: #333; font-size: 0.9rem;'>"
-        f"Progress: <b>{slider_val} / 260 rows</b> ({pct:.1f}% completed) &nbsp;|&nbsp; "
-        f"Remaining Rows: <b>{remaining_rows_count} rows</b><br>"
+        f"<p style='margin: 6px 0 0 0; color: #333; font-size: 0.9rem;'>"
+        f"Rows Finished: <b>{rows_finished} rows</b> (from Row {new_start} to {new_end}) &nbsp;|&nbsp; "
+        f"Remaining: <b>{remaining_rows_count} rows</b> ({pct:.1f}% completed)<br>"
         f"Est. Remaining Work: <b style='color:#2D6A4F;'>{remaining_work_hours:,.1f}h</b> "
         f"({assigned_staff_qty} workers assigned &rarr; <b>{remaining_work_per_staff:,.1f}h / staff</b>)"
         f"</p>",
         unsafe_allow_html=True,
     )
-    st.progress(slider_val / 260.0)
+    st.progress(min(1.0, rows_finished / 260.0))
     st.markdown("</div>", unsafe_allow_html=True)
