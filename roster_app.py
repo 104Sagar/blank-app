@@ -1215,10 +1215,7 @@ with tab_old_calc:
     tc1, tc2 = st.columns(2)
 
     is_clip_shoot = "clip/shoot" in task["name"].lower()
-    is_shared = (
-        "lowering" in task["name"].lower()
-        or "truss support" in task["name"].lower()
-    )
+    is_shared = "lowering" in task["name"].lower()  # Truss Support removed from shared limit
 
     if is_clip_shoot:
       limit_ref = max_allowed_hours - ((9.0 / 5.0) * remaining_days)
