@@ -127,7 +127,7 @@ if "task_targets" not in st.session_state:
       "De-leafing": 800.0,
       "Lowering": 1333.0,
       "Truss Pruning": 1200.0,
-      "Truss Support": 120.0,
+      "Truss Support": 1200.0,  # Updated per request
       "Leading Hand": 100.0,
       "Others": 100.0,
   }
@@ -144,7 +144,7 @@ DEFAULT_STAFF_DB = [
         ],
         "task_performance": {
             "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
                 "quality": "👍",
@@ -162,7 +162,7 @@ DEFAULT_STAFF_DB = [
         ],
         "task_performance": {
             "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
                 "quality": "👍",
@@ -180,7 +180,7 @@ DEFAULT_STAFF_DB = [
         ],
         "task_performance": {
             "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 110.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
                 "quality": "👍",
@@ -223,7 +223,7 @@ DEFAULT_STAFF_DB = [
                 "quality": "👍",
                 "notes": "",
             },
-            "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
         },
     },
     {
@@ -267,7 +267,7 @@ DEFAULT_STAFF_DB = [
         "skills": ["De-leafing", "Truss Support"],
         "task_performance": {
             "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 125.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
         },
     },
     {
@@ -302,7 +302,7 @@ DEFAULT_STAFF_DB = [
                 "quality": "👍",
                 "notes": "",
             },
-            "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
         },
     },
     {
@@ -336,7 +336,7 @@ DEFAULT_STAFF_DB = [
         "skills": ["Truss Pruning", "Truss Support"],
         "task_performance": {
             "Truss Pruning": {"kpi": 95.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
         },
     },
     {
@@ -411,7 +411,7 @@ DEFAULT_STAFF_DB = [
         "skills": ["De-leafing", "Truss Support"],
         "task_performance": {
             "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 115.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
         },
     },
     {
@@ -429,7 +429,7 @@ DEFAULT_STAFF_DB = [
                 "quality": "👍",
                 "notes": "",
             },
-            "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
         },
     },
     {
@@ -447,7 +447,7 @@ DEFAULT_STAFF_DB = [
                 "quality": "👍",
                 "notes": "",
             },
-            "Truss Support": {"kpi": 110.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
         },
     },
     {
@@ -550,19 +550,19 @@ if "calc_plants_per_row" not in st.session_state:
 st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
 
-# --- 5 STREAMLINED TABS ---
+# --- 5 STREAMLINED TABS (Progress moved to last) ---
 (
     tab_planner,
     tab_kpi,
-    tab_progress,
     tab_smart_calc,
     tab_old_calc,
+    tab_progress,
 ) = st.tabs([
     "📋 Roster & Copy Lists",
     "⭐ Weekly Task-Specific KPI & Quality Tracker",
-    "📈 Staff Progress & Skills",
     "📊 Smart Headcount & Shift Hours",
     "🧮 Advanced Workload & Overtime Status",
+    "📈 Staff Progress & Skills",
 ])
 
 # ==========================================
@@ -747,6 +747,20 @@ with tab_planner:
         "Select staff absent / on leave for next week:", options=all_names
     )
 
+    # Specific Leading Hand Selection Control if Leading Hand is allocated
+    leading_hands_db = [
+        s for s in st.session_state.staff_db if s["category"] == "Leading Hand"
+    ]
+    lh_names = [lh["name"] for lh in leading_hands_db]
+    st.markdown("---")
+    st.subheader("⭐ Leading Hand Selection")
+    selected_leading_hands = st.multiselect(
+        "Select Leading Hands to Keep Active:",
+        options=lh_names,
+        default=lh_names,
+        key="selected_leading_hands_filter",
+    )
+
   with col_right:
     st.subheader("2. Weekly Task Headcounts")
 
@@ -810,7 +824,13 @@ with tab_planner:
 
   # --- ALLOCATION ENGINE WITH MATCH TRACKING ---
   available_pool = [
-      s for s in st.session_state.staff_db if s["name"] not in absent_staff
+      s
+      for s in st.session_state.staff_db
+      if s["name"] not in absent_staff
+      and (
+          s["category"] != "Leading Hand"
+          or s["name"] in selected_leading_hands
+      )
   ]
   cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
 
@@ -1008,7 +1028,6 @@ with tab_kpi:
       " member below."
   )
 
-  # Filter out Leading Hand from KPI evaluation table
   kpi_tasks_list = [
       t for t in st.session_state.skills_list if t != "Leading Hand"
   ]
@@ -1111,59 +1130,7 @@ with tab_kpi:
 
 
 # ==========================================
-# TAB 3: STAFF PROGRESS & SKILLS DIRECTORY
-# ==========================================
-with tab_progress:
-  st.subheader("📈 Staff Skills Directory & Progress Overview")
-  st.markdown(
-      "Comprehensive view of all team members, certified skills, and performance"
-      " records."
-  )
-
-  search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
-
-  for person in st.session_state.staff_db:
-    if not search_query or search_query.lower() in person["name"].lower():
-      with st.expander(
-          f"👤 **{person['name']}** — Category: `{person['category']}`"
-      ):
-        col_p1, col_p2 = st.columns([1, 1.5])
-
-        with col_p1:
-          st.markdown(
-              "##### 🛠️ Certified Skills (Primary $\rightarrow$ Secondary"
-              " $\rightarrow$ Tertiary)"
-          )
-          skills = person.get("skills", [])
-          if skills:
-            for idx, sk in enumerate(skills):
-              tier_label = (
-                  ["Primary", "Secondary", "Tertiary"][idx]
-                  if idx < 3
-                  else "Extra"
-              )
-              st.markdown(f"- ✅ **{tier_label}:** {sk}")
-          else:
-            st.markdown("_No skills assigned_")
-
-        with col_p2:
-          st.markdown("##### 📊 Task Progress & KPI Records")
-          task_perf = person.get("task_performance", {})
-          if task_perf:
-            for t_name, metrics in task_perf.items():
-              kpi = metrics.get("kpi", 100.0)
-              qual = metrics.get("quality", "👍")
-              notes = metrics.get("notes", "")
-              note_text = f" | _Note: {notes}_" if notes else ""
-              st.markdown(
-                  f"- **{t_name}**: KPI **{kpi}** | Quality: {qual}{note_text}"
-              )
-          else:
-            st.markdown("_No KPI records logged yet_")
-
-
-# ==========================================
-# TAB 4: SMART HEADCOUNT & SHIFT HOURS (Combined)
+# TAB 3: SMART HEADCOUNT & SHIFT HOURS
 # ==========================================
 with tab_smart_calc:
   st.subheader("📊 Smart Headcount & Shift Hours Calculator")
@@ -1172,7 +1139,6 @@ with tab_smart_calc:
       " required task headcounts and shift totals."
   )
 
-  # Master Dimensions Config (Pulled into Advanced tab automatically)
   c_dim1, c_dim2 = st.columns(2)
   with c_dim1:
     st.session_state.calc_rows = st.number_input(
@@ -1209,10 +1175,11 @@ with tab_smart_calc:
 
   active_tasks_list = list(st.session_state.active_tasks.keys())
   smart_calc_results = {}
+  effective_kpis_for_advanced = {}
 
   sh1, sh2, sh3, sh4 = st.columns([2, 1.2, 1.5, 1.5])
   sh1.markdown("**Task Name**")
-  sh2.markdown("**Avg Weekly KPI**")
+  sh2.markdown("**KPI Used (Target vs Actual Avg)**")
   sh3.markdown("**Exact Headcount**")
   sh4.markdown("**Rec. Headcount (Ceiling)**")
 
@@ -1223,7 +1190,6 @@ with tab_smart_calc:
 
     sc1.markdown(f"**{task_name}**")
 
-    # Special handling for Leading Hand (treated as assigned person count rather than plant formula)
     if task_name == "Leading Hand":
       current_lh_count = float(st.session_state.active_tasks[task_name])
       lh_input = sc2.number_input(
@@ -1239,22 +1205,59 @@ with tab_smart_calc:
           "recommended": int(lh_input),
           "man_hours": lh_input * gh_crop_work_hrs_per_week,
       }
+      effective_kpis_for_advanced[task_name] = 100.0
       sc3.markdown(f"`{lh_input:.2f} workers`")
       sc4.markdown(
           f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
           f" 1.1rem;'>{int(lh_input)} workers</span>",
           unsafe_allow_html=True,
       )
+    elif task_name == "Others":
+      current_other_count = float(st.session_state.active_tasks[task_name])
+      other_input = sc2.number_input(
+          "People Count",
+          min_value=0.0,
+          value=current_other_count,
+          step=1.0,
+          key=f"smart_kpi_{task_name}",
+          label_visibility="collapsed",
+      )
+      smart_calc_results[task_name] = {
+          "exact": other_input,
+          "recommended": int(other_input),
+          "man_hours": other_input * gh_crop_work_hrs_per_week,
+      }
+      effective_kpis_for_advanced[task_name] = 100.0
+      sc3.markdown(f"`{other_input:.2f} workers`")
+      sc4.markdown(
+          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
+          f" 1.1rem;'>{int(other_input)} workers</span>",
+          unsafe_allow_html=True,
+      )
     else:
-      default_kpi = float(st.session_state.task_targets.get(task_name, 100.0))
+      # Calculate actual average KPI achieved from Tab 2 staff db records for this task
+      kpis_logged = []
+      for person in st.session_state.staff_db:
+        t_perf = person.get("task_performance", {})
+        if task_name in t_perf:
+          kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
+
+      avg_actual_kpi = (
+          sum(kpis_logged) / len(kpis_logged)
+          if kpis_logged
+          else float(st.session_state.task_targets.get(task_name, 100.0))
+      )
+
       kpi_input = sc2.number_input(
           "KPI",
           min_value=1.0,
-          value=default_kpi,
+          value=float(avg_actual_kpi),
           step=10.0,
           key=f"smart_kpi_{task_name}",
           label_visibility="collapsed",
       )
+
+      effective_kpis_for_advanced[task_name] = kpi_input
 
       man_hours = total_gh_plants / kpi_input if kpi_input > 0 else 0
       exact_hc = (
@@ -1279,11 +1282,10 @@ with tab_smart_calc:
 
   st.markdown("---")
 
-  # Grand Totals Calculation (Excluding Leading Hands as per rule for crop workload hours)
   crop_only_tasks = {
       t: res
       for t, res in smart_calc_results.items()
-      if t != "Leading Hand"
+      if t not in ["Leading Hand", "Others"]
   }
   total_crop_work_hours = sum(
       res["man_hours"] for res in crop_only_tasks.values()
@@ -1315,14 +1317,13 @@ with tab_smart_calc:
 
 
 # ==========================================
-# TAB 5: ADVANCED WORKLOAD & OVERTIME STATUS
+# TAB 4: ADVANCED WORKLOAD & OVERTIME STATUS
 # ==========================================
 with tab_old_calc:
-  st.subheader("🧮 Advanced Workload & Overtime Status")
+  st.subheader("🧮 Advanced Workload & Overtime Status (Using Actual / Average KPIs)")
   st.markdown(
-      "Automatically synchronizes glasshouse rows and plant densities from Tab 4"
-      " to analyze timeline constraints, pollination deductions, and overtime"
-      " alerts."
+      "Analyzes timeline constraints, pollination deductions, and overtime"
+      " alerts based on average actual KPIs and linked row/density specs."
   )
   st.markdown("---")
 
@@ -1347,16 +1348,15 @@ with tab_old_calc:
 
   st.markdown("---")
 
-  # Automatically extract tasks excluding Leading Hand for workload breakdown cards
   tasks_data = []
   shared_rows = st.session_state.calc_rows
   shared_density = st.session_state.calc_plants_per_row
 
   for task_name, staff_qty in st.session_state.active_tasks.items():
-    if task_name == "Leading Hand":
+    if task_name in ["Leading Hand", "Others"]:
       continue
 
-    kpi_val = float(st.session_state.task_targets.get(task_name, 600.0))
+    kpi_val = float(effective_kpis_for_advanced.get(task_name, 600.0))
     t_plants = shared_rows * shared_density
     t_man_hours = t_plants / kpi_val if kpi_val > 0 else 0
     t_duration = t_man_hours / staff_qty if staff_qty > 0 else 0
@@ -1372,7 +1372,6 @@ with tab_old_calc:
         "staff": staff_qty,
     })
 
-  # Aggregate calculations
   crop_care_man_hours = sum(t["man_hours"] for t in tasks_data)
 
   unique_staff_total = 0
@@ -1396,7 +1395,7 @@ with tab_old_calc:
       else 0.0
   )
 
-  st.subheader("📊 Live Weekly Summary (Excluding Leading Hands)")
+  st.subheader("📊 Live Weekly Summary (Excluding Leading Hands & Others)")
   m1, m2 = st.columns(2)
   m1.metric("Total Combined Workload", f"{grand_total_man_hours:.1f} Man-Hours")
   m2.metric(
@@ -1454,7 +1453,7 @@ with tab_old_calc:
           f"""
             <div class="{card_class}">
                 <h4>📋 {task['name']}</h4>
-                <p style="margin-bottom: 5px;"><b>Inputs:</b> {task['rows']} rows × {task['density']} density | <b>KPI:</b> {task['kpi']} | <b>Staff:</b> {task['staff']}</p>
+                <p style="margin-bottom: 5px;"><b>Inputs:</b> {task['rows']} rows × {task['density']} density | <b>Avg KPI:</b> {task['kpi']:.1f} | <b>Staff:</b> {task['staff']}</p>
                 <p style="margin-bottom: 5px;"><b>Workload:</b> {task['man_hours']:.1f} Man-Hours</p>
                 <p style="margin-bottom: 5px;"><b>Required Clock Time:</b> {task['duration']:.1f} Hours</p>
                 <hr style="margin: 10px 0; border: 0; border-top: 1px solid #D0D0D0;">
@@ -1464,3 +1463,55 @@ with tab_old_calc:
             """,
           unsafe_allow_html=True,
       )
+
+
+# ==========================================
+# TAB 5: STAFF PROGRESS & SKILLS DIRECTORY
+# ==========================================
+with tab_progress:
+  st.subheader("📈 Staff Skills Directory & Progress Overview")
+  st.markdown(
+      "Comprehensive view of all team members, certified skills, and performance"
+      " records."
+  )
+
+  search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
+
+  for person in st.session_state.staff_db:
+    if not search_query or search_query.lower() in person["name"].lower():
+      with st.expander(
+          f"👤 **{person['name']}** — Category: `{person['category']}`"
+      ):
+        col_p1, col_p2 = st.columns([1, 1.5])
+
+        with col_p1:
+          st.markdown(
+              "##### 🛠️ Certified Skills (Primary $\rightarrow$ Secondary"
+              " $\rightarrow$ Tertiary)"
+          )
+          skills = person.get("skills", [])
+          if skills:
+            for idx, sk in enumerate(skills):
+              tier_label = (
+                  ["Primary", "Secondary", "Tertiary"][idx]
+                  if idx < 3
+                  else "Extra"
+              )
+              st.markdown(f"- ✅ **{tier_label}:** {sk}")
+          else:
+            st.markdown("_No skills assigned_")
+
+        with col_p2:
+          st.markdown("##### 📊 Task Progress & KPI Records")
+          task_perf = person.get("task_performance", {})
+          if task_perf:
+            for t_name, metrics in task_perf.items():
+              kpi = metrics.get("kpi", 100.0)
+              qual = metrics.get("quality", "👍")
+              notes = metrics.get("notes", "")
+              note_text = f" | _Note: {notes}_" if notes else ""
+              st.markdown(
+                  f"- **{t_name}**: KPI **{kpi}** | Quality: {qual}{note_text}"
+              )
+          else:
+            st.markdown("_No KPI records logged yet_")
