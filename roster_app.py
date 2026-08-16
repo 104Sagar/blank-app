@@ -841,13 +841,13 @@ with tab_planner:
         m_type = item["match_type"]
 
         if m_type == "Primary":
-          icon_badge = "🟢 `[Primary]`"
+          icon_badge = "🟢"
         elif m_type == "Secondary":
-          icon_badge = "🟡 `[Secondary]`"
+          icon_badge = "🟡"
         elif m_type == "Tertiary":
-          icon_badge = "⚫ `[Tertiary]`"
+          icon_badge = "⚫"
         else:
-          icon_badge = "🔴 `[No Match]`"
+          icon_badge = "🔴"
 
         t_note = (
             m.get("task_performance", {}).get(task, {}).get("notes", "")
@@ -868,12 +868,23 @@ with tab_planner:
       for idx, item in enumerate(entries, 1):
         m = item["person"]
         m_type = item["match_type"]
+        
+        # Color dot symbol for copy-paste output without text labels
+        if m_type == "Primary":
+          dot_symbol = "🟢"
+        elif m_type == "Secondary":
+          dot_symbol = "🟡"
+        elif m_type == "Tertiary":
+          dot_symbol = "⚫"
+        else:
+          dot_symbol = "🔴"
+
         t_note = (
             m.get("task_performance", {}).get(task, {}).get("notes", "")
         )
         note = f" - {t_note}" if t_note else ""
         task_text_output += (
-            f"{idx}. {m['name']} ({m['category']}) [{m_type}]{note}\n"
+            f"{idx}. {m['name']} ({m['category']}) {dot_symbol}{note}\n"
         )
       task_text_output += "\n"
 
@@ -914,8 +925,18 @@ with tab_planner:
         cat_text_output += f"*{cat.upper()} ({len(cat_members)})*\n"
         for idx, m in enumerate(cat_members, 1):
           note = f" - {m['notes']}" if m["notes"] else ""
+          
+          if m["match"] == "Primary":
+            d_sym = "🟢"
+          elif m["match"] == "Secondary":
+            d_sym = "🟡"
+          elif m["match"] == "Tertiary":
+            d_sym = "⚫"
+          else:
+            d_sym = "🔴"
+
           cat_text_output += (
-              f"{idx}. {m['name']} - {m['task']} [{m['match']}]{note}\n"
+              f"{idx}. {m['name']} - {m['task']} {d_sym}{note}\n"
           )
         cat_text_output += "\n"
 
@@ -1094,7 +1115,7 @@ with tab_progress:
 
 
 # ==========================================
-# TAB 4: LABOR PLANNING CALCULATOR (UPDATED)
+# TAB 4: LABOR PLANNING CALCULATOR
 # ==========================================
 with tab_calc:
   st.subheader("🌱 Labor Planning & Calculation Calculator")
