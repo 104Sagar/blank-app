@@ -504,49 +504,74 @@ LEGACY_NOTES_TO_REMOVE = [
 
 
 def load_and_sanitize_staff_data():
+  data = DEFAULT_STAFF_DB
   if os.path.exists(DATA_FILE):
     try:
       with open(DATA_FILE, "r") as f:
         data = json.load(f)
-
-      modified = False
-      for person in data:
-        if "task_performance" not in person:
-          person["task_performance"] = {}
-          modified = True
-
-        skills = person.get("skills", [])
-        for i, sk in enumerate(skills):
-          if sk in ["Truss Cluster Prune", "Pruning"]:
-            skills[i] = "Truss Pruning"
-            modified = True
-
-        tp = person.get("task_performance", {})
-        for old_k in ["Truss Cluster Prune", "Pruning"]:
-          if old_k in tp:
-            tp["Truss Pruning"] = tp.pop(old_k)
-            modified = True
-
-        for sk in skills:
-          if sk not in person["task_performance"]:
-            default_t = st.session_state.task_targets.get(sk, 100.0)
-            person["task_performance"][sk] = {
-                "kpi": default_t,
-                "quality": "👍",
-                "notes": "",
-            }
-            modified = True
-
-        if person.get("notes") in LEGACY_NOTES_TO_REMOVE:
-          person["notes"] = ""
-          modified = True
-
-      if modified:
-        save_staff_data(data)
-      return data
     except Exception:
-      return DEFAULT_STAFF_DB
-  return DEFAULT_STAFF_DB
+      data = DEFAULT_STAFF_DB
+
+  modified = False
+
+  # Ensure Tico is always present as a Leading Hand
+  tico_found = False
+  for person in data:
+    if person.get("name") == "Tico":
+      person["category"] = "Leading Hand"
+      if "Leading Hand" not in person.get("skills", []):
+        person["skills"] = ["Leading Hand"] + [
+            s for s in person.get("skills", []) if s != "Leading Hand"
+        ]
+      tico_found = True
+      modified = True
+      break
+
+  if not tico_found:
+    data.append({
+        "name": "Tico",
+        "category": "Leading Hand",
+        "skills": ["Leading Hand"],
+        "task_performance": {
+            "Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""}
+        },
+    })
+    modified = True
+
+  for person in data:
+    if "task_performance" not in person:
+      person["task_performance"] = {}
+      modified = True
+
+    skills = person.get("skills", [])
+    for i, sk in enumerate(skills):
+      if sk in ["Truss Cluster Prune", "Pruning"]:
+        skills[i] = "Truss Pruning"
+        modified = True
+
+    tp = person.get("task_performance", {})
+    for old_k in ["Truss Cluster Prune", "Pruning"]:
+      if old_k in tp:
+        tp["Truss Pruning"] = tp.pop(old_k)
+        modified = True
+
+    for sk in skills:
+      if sk not in person["task_performance"]:
+        default_t = st.session_state.get("task_targets", {}).get(sk, 100.0)
+        person["task_performance"][sk] = {
+            "kpi": default_t,
+            "quality": "👍",
+            "notes": "",
+        }
+        modified = True
+
+    if person.get("notes") in LEGACY_NOTES_TO_REMOVE:
+      person["notes"] = ""
+      modified = True
+
+  if modified:
+    save_staff_data(data)
+  return data
 
 
 def save_staff_data(data):
@@ -790,7 +815,6 @@ with tab_planner:
     st.markdown("---")
     st.subheader("⭐ Leading Hand Selection")
 
-    # Ensure Tico and all leading hands are active by default and kept updated
     if "selected_leading_hands_filter" not in st.session_state:
       st.session_state["selected_leading_hands_filter"] = lh_names
     else:
