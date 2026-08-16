@@ -580,7 +580,7 @@ if "active_tasks" not in st.session_state:
   }
   st.session_state.active_tasks = saved_settings.get("active_tasks", default_tasks)
 
-# Calculator Session State Defaults (Area = 5 ha, Rows = 260, Plant Density per Row = 480)
+# Calculator Session State Defaults
 if "calc_plants_per_row" not in st.session_state:
   st.session_state.calc_plants_per_row = 480.0
 
@@ -591,8 +591,7 @@ plant_density_sqm = total_gh_plants / 50000.0
 st.title("📋 GH3 Labor Planner")
 st.markdown("---")
 
-# --- GLOBAL ALLOCATION ENGINE (COMPUTED FOR COPY LISTS & ALLOCATION TABS) ---
-# We collect absenteeism and leading hands from session state or defaults if not rendered yet
+# --- GLOBAL ALLOCATION ENGINE WITH LEADING HAND RESTRICTION ---
 absent_staff = st.session_state.get("absent_staff_input", [])
 leading_hands_db_init = [
     s for s in st.session_state.staff_db if s["category"] == "Leading Hand"
@@ -602,13 +601,13 @@ selected_leading_hands = st.session_state.get(
     "selected_leading_hands_filter", lh_names_init
 )
 
-available_pool = [
+# Eligible pool for regular tasks excludes Leading Hands
+regular_available_pool = [
     s
     for s in st.session_state.staff_db
-    if s["name"] not in absent_staff
-    and (s["category"] != "Leading Hand" or s["name"] in selected_leading_hands)
+    if s["name"] not in absent_staff and s["category"] != "Leading Hand"
 ]
-cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
+cat_priority = {"GG": 1, "TOTC": 2, "Urson": 3}
 task_requirements = {
     t: c for t, c in st.session_state.active_tasks.items() if c > 0
 }
@@ -619,11 +618,15 @@ allocated_roster = {task: [] for task in task_requirements}
 
 def allocate_by_tier(tier_index, match_label):
   for task_name, req_count in task_requirements.items():
+    if task_name == "Leading Hand":
+      continue  # Handled separately
     while len(allocated_roster[task_name]) < req_count:
       assigned_flat = [
           m["person"] for mems in allocated_roster.values() for m in mems
       ]
-      unassigned_pool = [p for p in available_pool if p not in assigned_flat]
+      unassigned_pool = [
+          p for p in regular_available_pool if p not in assigned_flat
+      ]
 
       candidates_for_task = []
       for person in unassigned_pool:
@@ -661,12 +664,17 @@ allocate_by_tier(0, "Primary")
 allocate_by_tier(1, "Secondary")
 allocate_by_tier(2, "Tertiary")
 
+# Fallback for regular tasks
 for task_name, req_count in task_requirements.items():
+  if task_name == "Leading Hand":
+    continue
   while len(allocated_roster[task_name]) < req_count:
     assigned_flat = [
         m["person"] for mems in allocated_roster.values() for m in mems
     ]
-    unassigned_pool = [p for p in available_pool if p not in assigned_flat]
+    unassigned_pool = [
+        p for p in regular_available_pool if p not in assigned_flat
+    ]
 
     if not unassigned_pool:
       break
@@ -677,13 +685,38 @@ for task_name, req_count in task_requirements.items():
         {"person": fallback_person, "match_type": "No Match"}
     )
 
+# Handle Leading Hand task allocation strictly
+if "Leading Hand" in task_requirements:
+  lh_req_count = task_requirements["Leading Hand"]
+  active_lh_pool = [
+      s
+      for s in leading_hands_db_init
+      if s["name"] not in absent_staff and s["name"] in selected_leading_hands
+  ]
+  for lh in active_lh_pool[:lh_req_count]:
+    allocated_roster["Leading Hand"].append(
+        {"person": lh, "match_type": "Primary"}
+    )
+
+# Determine Unassigned (Absent) vs Extra Available Staff (Not Required)
 assigned_staff_flat = [
     m["person"] for mems in allocated_roster.values() for m in mems
 ]
-unassigned_staff = [p for p in available_pool if p not in assigned_staff_flat]
+absent_staff_records = [
+    s for s in st.session_state.staff_db if s["name"] in absent_staff
+]
+extra_available_staff = [
+    p
+    for p in regular_available_pool + leading_hands_db_init
+    if p not in assigned_staff_flat
+    and p["name"] not in absent_staff
+    and (
+        p["category"] != "Leading Hand" or p["name"] in selected_leading_hands
+    )
+]
 
 
-# --- 6 TABS RESTRUCTURED ---
+# --- 6 TABS ---
 (
     tab_copy_lists,
     tab_planner,
@@ -720,8 +753,10 @@ with tab_copy_lists:
     task_text_output += "-----------------------------------\n\n"
 
     for task, entries in allocated_roster.items():
+      if not entries:
+        continue
       task_text_output += (
-          f"*{task.upper()} ({len(entries)}/{task_requirements[task]})*\n"
+          f"*{task.upper()} ({len(entries)}/{task_requirements.get(task, len(entries))})*\n"
       )
       for idx, item in enumerate(entries, 1):
         m = item["person"]
@@ -732,9 +767,15 @@ with tab_copy_lists:
         task_text_output += f"{idx}. {m['name']} ({m['category']}){note}\n"
       task_text_output += "\n"
 
-    if unassigned_staff:
-      task_text_output += "*STANDBY / UNASSIGNED STAFF*\n"
-      for u in unassigned_staff:
+    if extra_available_staff:
+      task_text_output += "*EXTRA AVAILABLE STAFF (NOT REQUIRED)*\n"
+      for u in extra_available_staff:
+        task_text_output += f"- {u['name']} ({u['category']})\n"
+      task_text_output += "\n"
+
+    if absent_staff_records:
+      task_text_output += "*STANDBY / UNASSIGNED STAFF (ABSENT)*\n"
+      for u in absent_staff_records:
         task_text_output += f"- {u['name']} ({u['category']})\n"
 
     st.code(task_text_output, language="text")
@@ -773,9 +814,15 @@ with tab_copy_lists:
           cat_text_output += f"{idx}. {m['name']} - {m['task']}{note}\n"
         cat_text_output += "\n"
 
-    if unassigned_staff:
-      cat_text_output += "*STANDBY / UNASSIGNED STAFF*\n"
-      for u in unassigned_staff:
+    if extra_available_staff:
+      cat_text_output += "*EXTRA AVAILABLE STAFF (NOT REQUIRED)*\n"
+      for u in extra_available_staff:
+        cat_text_output += f"- {u['name']} ({u['category']})\n"
+      cat_text_output += "\n"
+
+    if absent_staff_records:
+      cat_text_output += "*STANDBY / UNASSIGNED STAFF (ABSENT)*\n"
+      for u in absent_staff_records:
         cat_text_output += f"- {u['name']} ({u['category']})\n"
 
     st.code(cat_text_output, language="text")
@@ -1045,10 +1092,15 @@ with tab_planner:
       st.write(f"- **{m['name']}** [{m['category']}] — {icon_badge}{note_str}")
     st.markdown("---")
 
-  if unassigned_staff:
+  if extra_available_staff:
+    st.info(
+        f"💡 **Extra Available Staff (Not Required):** "
+        + ", ".join([u["name"] for u in extra_available_staff])
+    )
+  if absent_staff_records:
     st.warning(
-        f"⚠️ **{len(unassigned_staff)} Unassigned Staff:** "
-        + ", ".join([u["name"] for u in unassigned_staff])
+        f"⚠️ **Absent Staff:** "
+        + ", ".join([u["name"] for u in absent_staff_records])
     )
 
 
