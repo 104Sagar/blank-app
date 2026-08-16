@@ -153,10 +153,10 @@ if "task_targets" not in st.session_state:
 if "saved_avg_kpis" not in st.session_state:
   st.session_state.saved_avg_kpis = saved_settings.get("avg_kpis", {})
 
-# Persistent Row Progress loaded from settings
-if "completed_rows_count" not in st.session_state:
-  st.session_state.completed_rows_count = saved_settings.get(
-      "completed_rows_count", 0
+# Persistent Per-Task Row Progress loaded from settings
+if "task_row_progress" not in st.session_state:
+  st.session_state.task_row_progress = saved_settings.get(
+      "task_row_progress", {}
   )
 
 # Default Staff Data
@@ -796,10 +796,6 @@ plant_density_sqm = total_gh_plants / 50000.0
 st.title("📋 GH3 Labor Planner")
 st.markdown("---")
 
-# Initialize Absent Staff state if not present
-if "absent_staff_input" not in st.session_state:
-  st.session_state.absent_staff_input = []
-
 # --- GLOBAL ALLOCATION ENGINE WITH LEADING HAND RESTRICTION ---
 absent_staff = st.session_state.get("absent_staff_input", [])
 leading_hands_db_init = [
@@ -922,7 +918,7 @@ extra_available_staff = [
 ]
 
 
-# --- 7 TABS (Added Row Progress Tracker Tab) ---
+# --- 7 TABS ---
 (
     tab_copy_lists,
     tab_planner,
@@ -1197,21 +1193,9 @@ with tab_planner:
   with col_ctrl1:
     st.subheader("1. Availability Check")
     all_names = [s["name"] for s in st.session_state.staff_db]
-
-    # Quick Absenteeism Checkbox Toggles for Each Staff Member
-    st.markdown(
-        "<small style='color:gray;'>Tap to mark absent for today:</small>",
-        unsafe_allow_html=True,
+    absent_staff = st.multiselect(
+        "Absent / Leave:", options=all_names, key="absent_staff_input"
     )
-    for name in all_names:
-      is_absent = name in st.session_state.absent_staff_input
-      checked = st.checkbox(f"🔴 {name} (Absent)", value=is_absent, key=f"absent_chk_{name}")
-      if checked and name not in st.session_state.absent_staff_input:
-        st.session_state.absent_staff_input.append(name)
-      elif not checked and name in st.session_state.absent_staff_input:
-        st.session_state.absent_staff_input.remove(name)
-
-    absent_staff = st.session_state.absent_staff_input
 
     leading_hands_db = [
         s for s in st.session_state.staff_db if s["category"] == "Leading Hand"
@@ -1874,6 +1858,7 @@ with tab_progress:
             st.markdown(f"- {sk}")
         with col_p2:
           st.markdown("##### 📊 Current KPI & Historical Trends")
+          chart_data = {}
           for t_name, metrics in person.get("task_performance", {}).items():
             current_kpi = metrics.get("kpi", 100)
             current_qual = metrics.get("quality", "👍")
@@ -1883,6 +1868,8 @@ with tab_progress:
             )
 
             history = metrics.get("history", [])
+            chart_data[t_name] = current_kpi
+
             if history:
               history_str = ", ".join([
                   f"{h['date']}: {h['kpi']} ({h['quality']})" for h in history
@@ -1898,70 +1885,130 @@ with tab_progress:
                   " yet</small>"
               )
 
+          # Display Employee KPI Bar Chart
+          if chart_data:
+            st.markdown(
+                "<small style='color:#2D6A4F; font-weight:600;'>KPI Bar"
+                " Summary:</small>",
+                unsafe_allow_html=True,
+            )
+            st.bar_chart(chart_data)
+
 
 # ==========================================
-# TAB 7: ROW PROGRESS TRACKER
+# TAB 7: TASK-SPECIFIC ROW PROGRESS TRACKER
 # ==========================================
 with tab_row_tracker:
-  st.subheader("📌 Greenhouse Row Progress Tracker")
+  st.subheader("📌 Task-Specific Greenhouse Row Progress Tracker")
   st.markdown(
-      "Track completed rows out of **260 total rows** to prevent missed sections"
-      " or double-work across shifts."
+      "Because tasks start from different points to avoid clashes, track"
+      " completed rows **independently per task** below."
   )
 
-  completed = st.session_state.completed_rows_count
+  # Initialize task row progress dict in session state if missing
+  active_tasks_list = list(st.session_state.active_tasks.keys())
+  for t_name in active_tasks_list:
+    if t_name not in st.session_state.task_row_progress:
+      st.session_state.task_row_progress[t_name] = 0
 
-  # Quick Action Buttons
-  col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
-  if col_btn1.button("➕ 10 Rows"):
-    st.session_state.completed_rows_count = min(260, completed + 10)
-    save_settings({"completed_rows_count": st.session_state.completed_rows_count, "active_tasks": st.session_state.active_tasks, "task_targets": st.session_state.task_targets, "avg_kpis": st.session_state.saved_avg_kpis})
-    st.rerun()
-  if col_btn2.button("➕ 50 Rows"):
-    st.session_state.completed_rows_count = min(260, completed + 50)
-    save_settings({"completed_rows_count": st.session_state.completed_rows_count, "active_tasks": st.session_state.active_tasks, "task_targets": st.session_state.task_targets, "avg_kpis": st.session_state.saved_avg_kpis})
-    st.rerun()
-  if col_btn3.button("Reset (0)"):
-    st.session_state.completed_rows_count = 0
-    save_settings({"completed_rows_count": 0, "active_tasks": st.session_state.active_tasks, "task_targets": st.session_state.task_targets, "avg_kpis": st.session_state.saved_avg_kpis})
-    st.rerun()
-  if col_btn4.button("Complete All (260)"):
-    st.session_state.completed_rows_count = 260
-    save_settings({"completed_rows_count": 260, "active_tasks": st.session_state.active_tasks, "task_targets": st.session_state.task_targets, "avg_kpis": st.session_state.saved_avg_kpis})
-    st.rerun()
+  for task_name in active_tasks_list:
+    current_task_completed = st.session_state.task_row_progress.get(
+        task_name, 0
+    )
 
-  st.markdown("---")
+    st.markdown(
+        f"<div style='background: #FFFFFF; padding: 14px 18px; border-radius: 10px; border: 1px solid #B5CBC0; box-shadow: 0 2px 6px rgba(0,0,0,0.02); margin-bottom: 15px;'>"
+        f"<h4 style='margin: 0 0 8px 0; color: #1B4332;'>📋 {task_name}</h4>",
+        unsafe_allow_html=True,
+    )
 
-  # Slider / Number Input for Exact Row Control
-  def update_row_slider():
-    curr_sets = load_settings()
-    curr_sets["completed_rows_count"] = st.session_state.row_slider_input
-    save_settings(curr_sets)
+    c_b1, c_b2, c_b3, c_b4 = st.columns(4)
+    if c_b1.button(
+        "➕ 10 Rows", key=f"p10_{task_name}"
+    ):
+      st.session_state.task_row_progress[task_name] = min(
+          260, current_task_completed + 10
+      )
+      save_settings({
+          "completed_rows_count": saved_settings.get(
+              "completed_rows_count", 0
+          ),
+          "active_tasks": st.session_state.active_tasks,
+          "task_targets": st.session_state.task_targets,
+          "avg_kpis": st.session_state.saved_avg_kpis,
+          "task_row_progress": st.session_state.task_row_progress,
+      })
+      st.rerun()
 
-  completed_slider = st.slider(
-      "Adjust Completed Rows:",
-      min_value=0,
-      max_value=260,
-      value=int(st.session_state.completed_rows_count),
-      step=1,
-      key="row_slider_input",
-      on_change=update_row_slider
-  )
-  st.session_state.completed_rows_count = completed_slider
+    if c_b2.button(
+        "➕ 50 Rows", key=f"p50_{task_name}"
+    ):
+      st.session_state.task_row_progress[task_name] = min(
+          260, current_task_completed + 50
+      )
+      save_settings({
+          "completed_rows_count": saved_settings.get(
+              "completed_rows_count", 0
+          ),
+          "active_tasks": st.session_state.active_tasks,
+          "task_targets": st.session_state.task_targets,
+          "avg_kpis": st.session_state.saved_avg_kpis,
+          "task_row_progress": st.session_state.task_row_progress,
+      })
+      st.rerun()
 
-  # Visual Progress Display Card
-  pct_done = (completed_slider / 260.0) * 100.0
-  remaining_rows = 260 - completed_slider
+    if c_b3.button(
+        "Reset", key=f"preset_{task_name}"
+    ):
+      st.session_state.task_row_progress[task_name] = 0
+      save_settings({
+          "completed_rows_count": saved_settings.get(
+              "completed_rows_count", 0
+          ),
+          "active_tasks": st.session_state.active_tasks,
+          "task_targets": st.session_state.task_targets,
+          "avg_kpis": st.session_state.saved_avg_kpis,
+          "task_row_progress": st.session_state.task_row_progress,
+      })
+      st.rerun()
 
-  st.markdown(
-      f"""
-      <div style="background: #FFFFFF; padding: 20px; border-radius: 12px; border: 1px solid #B5CBC0; box-shadow: 0 2px 8px rgba(0,0,0,0.03); margin-top: 15px; text-align: center;">
-          <h2 style="margin: 0; color: #1B4332;">{completed_slider} / 260 Rows Completed ({pct_done:.1f}%)</h2>
-          <p style="margin: 8px 0 0 0; color: #555; font-size: 1rem;">Remaining: <b>{remaining_rows} rows</b> left to cover</p>
-      </div>
-      """,
-      unsafe_allow_html=True,
-  )
+    if c_b4.button(
+        "Complete All", key=f"pall_{task_name}"
+    ):
+      st.session_state.task_row_progress[task_name] = 260
+      save_settings({
+          "completed_rows_count": saved_settings.get(
+              "completed_rows_count", 0
+          ),
+          "active_tasks": st.session_state.active_tasks,
+          "task_targets": st.session_state.task_targets,
+          "avg_kpis": st.session_state.saved_avg_kpis,
+          "task_row_progress": st.session_state.task_row_progress,
+      })
+      st.rerun()
 
-  # Visual Progress Bar
-  st.progress(completed_slider / 260.0)
+    def update_task_slider(t=task_name):
+      curr_sets = load_settings()
+      if "task_row_progress" not in curr_sets:
+        curr_sets["task_row_progress"] = {}
+      curr_sets["task_row_progress"][t] = st.session_state[f"slider_{t}"]
+      save_settings(curr_sets)
+
+    slider_val = st.slider(
+        f"Rows Completed for {task_name}:",
+        min_value=0,
+        max_value=260,
+        value=int(current_task_completed),
+        step=1,
+        key=f"slider_{task_name}",
+        on_change=update_task_slider,
+    )
+    st.session_state.task_row_progress[task_name] = slider_val
+
+    pct = (slider_val / 260.0) * 100.0
+    st.markdown(
+        f"<p style='margin: 4px 0 0 0; color: #333; font-size: 0.9rem;'>Progress: <b>{slider_val} / 260 rows</b> ({pct:.1f}% completed) &nbsp;|&nbsp; Remaining: <b>{260 - slider_val} rows</b></p>",
+        unsafe_allow_html=True,
+    )
+    st.progress(slider_val / 260.0)
+    st.markdown("</div>", unsafe_allow_html=True)
