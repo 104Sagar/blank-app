@@ -8,8 +8,25 @@ st.set_page_config(
     page_title="GG Labor Roster Planner", page_icon="📋", layout="wide"
 )
 
-# File path for persistent database storage
+# File paths for persistent database & settings storage
 DATA_FILE = "staff_db.json"
+SETTINGS_FILE = "settings.json"
+
+
+def load_settings():
+  if os.path.exists(SETTINGS_FILE):
+    try:
+      with open(SETTINGS_FILE, "r") as f:
+        return json.load(f)
+    except Exception:
+      return {}
+  return {}
+
+
+def save_settings(settings_dict):
+  with open(SETTINGS_FILE, "w") as f:
+    json.dump(settings_dict, f, indent=4)
+
 
 # --- PREMIUM MODERN UI CSS STYLING ---
 st.markdown(
@@ -109,7 +126,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- MASTER SKILLS & DEFAULT TARGET KPIS ---
+# --- LOAD PERSISTENT SETTINGS ---
+saved_settings = load_settings()
+
+# --- MASTER SKILLS & TARGET KPIS ---
 if "skills_list" not in st.session_state:
   st.session_state.skills_list = [
       "Clip/Shoot & Pollination",
@@ -122,7 +142,7 @@ if "skills_list" not in st.session_state:
   ]
 
 if "task_targets" not in st.session_state:
-  st.session_state.task_targets = {
+  default_targets = {
       "Clip/Shoot & Pollination": 674.0,
       "De-leafing": 800.0,
       "Lowering": 1333.0,
@@ -131,10 +151,12 @@ if "task_targets" not in st.session_state:
       "Leading Hand": 100.0,
       "Others": 100.0,
   }
+  loaded_targets = saved_settings.get("task_targets", default_targets)
+  st.session_state.task_targets = loaded_targets
 
-# Persistent Average KPIs dictionary
+# Persistent Average KPIs dictionary loaded from settings
 if "saved_avg_kpis" not in st.session_state:
-  st.session_state.saved_avg_kpis = {}
+  st.session_state.saved_avg_kpis = saved_settings.get("avg_kpis", {})
 
 # Default Staff Data
 DEFAULT_STAFF_DB = [
@@ -554,19 +576,19 @@ if "calc_plants_per_row" not in st.session_state:
 st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
 
-# --- TAB ORDER PER REQUEST ---
+# --- UPDATED TAB ORDER (Smart Headcount & Shift Hours moved to last) ---
 (
     tab_planner,
     tab_old_calc,
-    tab_smart_calc,
     tab_kpi,
     tab_progress,
+    tab_smart_calc,
 ) = st.tabs([
     "📋 Roster & Copy Lists",
     "🧮 Advanced Workload & Overtime Status",
-    "📊 Smart Headcount & Shift Hours",
     "⭐ Weekly Task-Specific KPI & Quality Tracker",
     "📈 Staff Progress & Skills",
+    "📊 Smart Headcount & Shift Hours",
 ])
 
 # ==========================================
@@ -705,6 +727,11 @@ with tab_planner:
       updated_targets[s] = t_val
     st.session_state.task_targets = updated_targets
 
+    # Save target KPIs to settings json
+    curr_settings = load_settings()
+    curr_settings["task_targets"] = updated_targets
+    save_settings(curr_settings)
+
     st.markdown("---")
     add_skill_direct = st.text_input(
         "Add New Skill to System", key="add_skill_direct_key"
@@ -716,6 +743,9 @@ with tab_planner:
       ):
         st.session_state.skills_list.append(add_skill_direct.strip())
         st.session_state.task_targets[add_skill_direct.strip()] = 100.0
+        curr_settings = load_settings()
+        curr_settings["task_targets"] = st.session_state.task_targets
+        save_settings(curr_settings)
         st.sidebar.success(f"Added Skill: {add_skill_direct.strip()}")
         st.rerun()
 
@@ -1022,7 +1052,7 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (With Grand Total Metrics on Top & Reliable Persistent KPIs)
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (With Grand Total Metrics on Top & 100% Persistent Average KPIs)
 # ==========================================
 with tab_old_calc:
   st.subheader("🧮 Advanced Workload & Overtime Status")
@@ -1053,7 +1083,7 @@ with tab_old_calc:
 
   st.markdown("---")
 
-  # --- GRAND TOTAL SHIFT HOURS REQUIRED METRICS BLOCK (MOVED TO TOP OF TAB 2) ---
+  # --- GRAND TOTAL SHIFT HOURS REQUIRED METRICS BLOCK (ON TOP OF TAB 2) ---
   gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
   gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
   gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
@@ -1096,7 +1126,7 @@ with tab_old_calc:
 
     target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
 
-    # Initialize persistent saved average KPI securely once
+    # Initialize persistent saved average KPI securely from persistent settings or staff db
     if task_name not in st.session_state.saved_avg_kpis:
       kpis_logged = []
       for person in st.session_state.staff_db:
@@ -1107,6 +1137,10 @@ with tab_old_calc:
           sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
       )
       st.session_state.saved_avg_kpis[task_name] = default_logged_avg
+      # Save to settings file immediately
+      curr_sets = load_settings()
+      curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
+      save_settings(curr_sets)
 
     t_plants = shared_rows * shared_density
     mh_target = t_plants / target_kpi if target_kpi > 0 else 0
@@ -1168,7 +1202,7 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
-    # --- Average KPI Card with Strictly Locked Persistent State ---
+    # --- Average KPI Card with Permanent Disk Storage (survives reloads) ---
     with tc2:
       st.markdown(
           "<p style='margin-bottom:2px; font-weight:bold; color:#1B4332;"
@@ -1178,24 +1212,31 @@ with tab_old_calc:
 
       input_key = f"adv_avg_kpi_input_{task['name']}"
 
-      # Ensure session state has the current saved value before rendering widget
       if input_key not in st.session_state:
-        st.session_state[input_key] = st.session_state.saved_avg_kpis[
-            task["name"]
-        ]
+        st.session_state[input_key] = float(
+            st.session_state.saved_avg_kpis.get(task["name"], 100.0)
+        )
+
 
       def update_avg_kpi(t_name=task["name"], k=input_key):
-        st.session_state.saved_avg_kpis[t_name] = st.session_state[k]
+        val = float(st.session_state[k])
+        st.session_state.saved_avg_kpis[t_name] = val
+        curr_sets = load_settings()
+        curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
+        save_settings(curr_sets)
+
 
       avg_kpi_user = st.number_input(
           f"Average KPI for {task['name']}",
           min_value=1.0,
+          value=float(st.session_state[input_key]),
           step=10.0,
           key=input_key,
           on_change=update_avg_kpi,
           label_visibility="collapsed",
       )
-      # Synchronize back
+
+      # Ensure saved values stay updated
       st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_user
 
       mh_avg = task["plants"] / avg_kpi_user if avg_kpi_user > 0 else 0
@@ -1224,7 +1265,170 @@ with tab_old_calc:
 
 
 # ==========================================
-# TAB 3: SMART HEADCOUNT & SHIFT HOURS
+# TAB 3: WEEKLY TASK-SPECIFIC KPI TRACKER
+# ==========================================
+with tab_kpi:
+  st.subheader("⭐ Weekly Task-Specific KPI & Quality Evaluation")
+  st.markdown(
+      "Set individual KPI scores and quality ratings **per task** for each team"
+      " member below."
+  )
+
+  kpi_tasks_list = [
+      t for t in st.session_state.skills_list if t != "Leading Hand"
+  ]
+
+  selected_task_to_eval = st.selectbox(
+      "Select Task to Evaluate / Update:",
+      options=kpi_tasks_list,
+      key="eval_task_select",
+  )
+  target_val_for_task = st.session_state.task_targets.get(
+      selected_task_to_eval, 100.0
+  )
+  st.info(
+      f"🎯 Current Target KPI for **{selected_task_to_eval}**:"
+      f" **{target_val_for_task}** (Adjustable in the sidebar)"
+  )
+
+  relevant_staff = [
+      s
+      for s in st.session_state.staff_db
+      if selected_task_to_eval in s.get("skills", [])
+  ]
+
+  if not relevant_staff:
+    st.warning(
+        f"No staff currently trained in {selected_task_to_eval}. Go to sidebar"
+        " 'Update / Train Staff Skills' to assign this skill."
+    )
+  else:
+    with st.form(f"kpi_form_{selected_task_to_eval}"):
+      h1, h2, h3, h4 = st.columns([1.5, 1.2, 1, 1.5])
+      h1.markdown("**Staff Name**")
+      h2.markdown(f"**KPI Score (Target: {target_val_for_task})**")
+      h3.markdown("**Quality**")
+      h4.markdown("**Task Notes / Excellence**")
+
+      st.markdown("---")
+
+      form_inputs = {}
+      for person in relevant_staff:
+        c1, c2, c3, c4 = st.columns([1.5, 1.2, 1, 1.5])
+
+        c1.markdown(
+            f"**{person['name']}** <br><small"
+            f" style='color:gray;'>{person['category']}</small>",
+            unsafe_allow_html=True,
+        )
+
+        p_perf = person.get("task_performance", {}).get(
+            selected_task_to_eval,
+            {"kpi": target_val_for_task, "quality": "👍", "notes": ""},
+        )
+
+        kpi_in = c2.number_input(
+            "KPI",
+            min_value=0.0,
+            value=float(p_perf.get("kpi", target_val_for_task)),
+            step=1.0,
+            key=f"kpi_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+        )
+        qual_in = c3.selectbox(
+            "Quality",
+            ["👍", "👎"],
+            index=0 if p_perf.get("quality", "👍") == "👍" else 1,
+            key=f"qual_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+        )
+        note_in = c4.text_input(
+            "Notes",
+            value=p_perf.get("notes", ""),
+            key=f"note_{person['name']}_{selected_task_to_eval}",
+            label_visibility="collapsed",
+            placeholder="e.g. Excellent speed",
+        )
+
+        form_inputs[person["name"]] = {
+            "kpi": kpi_in,
+            "quality": qual_in,
+            "notes": note_in,
+        }
+
+      submit_task_kpi = st.form_submit_button(
+          f"💾 Save Ratings for {selected_task_to_eval}", type="primary"
+      )
+      if submit_task_kpi:
+        for person in st.session_state.staff_db:
+          name = person["name"]
+          if name in form_inputs:
+            if "task_performance" not in person:
+              person["task_performance"] = {}
+            person["task_performance"][selected_task_to_eval] = form_inputs[name]
+
+        save_staff_data(st.session_state.staff_db)
+        st.success(
+            f"Successfully updated KPI and Quality ratings for"
+            f" {selected_task_to_eval}!"
+        )
+        st.rerun()
+
+
+# ==========================================
+# TAB 4: STAFF PROGRESS & SKILLS DIRECTORY
+# ==========================================
+with tab_progress:
+  st.subheader("📈 Staff Skills Directory & Progress Overview")
+  st.markdown(
+      "Comprehensive view of all team members, certified skills, and performance"
+      " records."
+  )
+
+  search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
+
+  for person in st.session_state.staff_db:
+    if not search_query or search_query.lower() in person["name"].lower():
+      with st.expander(
+          f"👤 **{person['name']}** — Category: `{person['category']}`"
+      ):
+        col_p1, col_p2 = st.columns([1, 1.5])
+
+        with col_p1:
+          st.markdown(
+              "##### 🛠️ Certified Skills (Primary $\rightarrow$ Secondary"
+              " $\rightarrow$ Tertiary)"
+          )
+          skills = person.get("skills", [])
+          if skills:
+            for idx, sk in enumerate(skills):
+              tier_label = (
+                  ["Primary", "Secondary", "Tertiary"][idx]
+                  if idx < 3
+                  else "Extra"
+              )
+              st.markdown(f"- ✅ **{tier_label}:** {sk}")
+          else:
+            st.markdown("_No skills assigned_")
+
+        with col_p2:
+          st.markdown("##### 📊 Task Progress & KPI Records")
+          task_perf = person.get("task_performance", {})
+          if task_perf:
+            for t_name, metrics in task_perf.items():
+              kpi = metrics.get("kpi", 100.0)
+              qual = metrics.get("quality", "👍")
+              notes = metrics.get("notes", "")
+              note_text = f" | _Note: {notes}_" if notes else ""
+              st.markdown(
+                  f"- **{t_name}**: KPI **{kpi}** | Quality: {qual}{note_text}"
+              )
+          else:
+            st.markdown("_No KPI records logged yet_")
+
+
+# ==========================================
+# TAB 5: SMART HEADCOUNT & SHIFT HOURS (Moved to last)
 # ==========================================
 with tab_smart_calc:
   st.subheader("📊 Smart Headcount & Shift Hours Calculator")
@@ -1370,166 +1574,3 @@ with tab_smart_calc:
         "Successfully populated Tab 1 headcounts with the recommended values!"
     )
     st.rerun()
-
-
-# ==========================================
-# TAB 4: WEEKLY TASK-SPECIFIC KPI TRACKER
-# ==========================================
-with tab_kpi:
-  st.subheader("⭐ Weekly Task-Specific KPI & Quality Evaluation")
-  st.markdown(
-      "Set individual KPI scores and quality ratings **per task** for each team"
-      " member below."
-  )
-
-  kpi_tasks_list = [
-      t for t in st.session_state.skills_list if t != "Leading Hand"
-  ]
-
-  selected_task_to_eval = st.selectbox(
-      "Select Task to Evaluate / Update:",
-      options=kpi_tasks_list,
-      key="eval_task_select",
-  )
-  target_val_for_task = st.session_state.task_targets.get(
-      selected_task_to_eval, 100.0
-  )
-  st.info(
-      f"🎯 Current Target KPI for **{selected_task_to_eval}**:"
-      f" **{target_val_for_task}** (Adjustable in the sidebar)"
-  )
-
-  relevant_staff = [
-      s
-      for s in st.session_state.staff_db
-      if selected_task_to_eval in s.get("skills", [])
-  ]
-
-  if not relevant_staff:
-    st.warning(
-        f"No staff currently trained in {selected_task_to_eval}. Go to sidebar"
-        " 'Update / Train Staff Skills' to assign this skill."
-    )
-  else:
-    with st.form(f"kpi_form_{selected_task_to_eval}"):
-      h1, h2, h3, h4 = st.columns([1.5, 1.2, 1, 1.5])
-      h1.markdown("**Staff Name**")
-      h2.markdown(f"**KPI Score (Target: {target_val_for_task})**")
-      h3.markdown("**Quality**")
-      h4.markdown("**Task Notes / Excellence**")
-
-      st.markdown("---")
-
-      form_inputs = {}
-      for person in relevant_staff:
-        c1, c2, c3, c4 = st.columns([1.5, 1.2, 1, 1.5])
-
-        c1.markdown(
-            f"**{person['name']}** <br><small"
-            f" style='color:gray;'>{person['category']}</small>",
-            unsafe_allow_html=True,
-        )
-
-        p_perf = person.get("task_performance", {}).get(
-            selected_task_to_eval,
-            {"kpi": target_val_for_task, "quality": "👍", "notes": ""},
-        )
-
-        kpi_in = c2.number_input(
-            "KPI",
-            min_value=0.0,
-            value=float(p_perf.get("kpi", target_val_for_task)),
-            step=1.0,
-            key=f"kpi_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-        )
-        qual_in = c3.selectbox(
-            "Quality",
-            ["👍", "👎"],
-            index=0 if p_perf.get("quality", "👍") == "👍" else 1,
-            key=f"qual_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-        )
-        note_in = c4.text_input(
-            "Notes",
-            value=p_perf.get("notes", ""),
-            key=f"note_{person['name']}_{selected_task_to_eval}",
-            label_visibility="collapsed",
-            placeholder="e.g. Excellent speed",
-        )
-
-        form_inputs[person["name"]] = {
-            "kpi": kpi_in,
-            "quality": qual_in,
-            "notes": note_in,
-        }
-
-      submit_task_kpi = st.form_submit_button(
-          f"💾 Save Ratings for {selected_task_to_eval}", type="primary"
-      )
-      if submit_task_kpi:
-        for person in st.session_state.staff_db:
-          name = person["name"]
-          if name in form_inputs:
-            if "task_performance" not in person:
-              person["task_performance"] = {}
-            person["task_performance"][selected_task_to_eval] = form_inputs[name]
-
-        save_staff_data(st.session_state.staff_db)
-        st.success(
-            f"Successfully updated KPI and Quality ratings for"
-            f" {selected_task_to_eval}!"
-        )
-        st.rerun()
-
-
-# ==========================================
-# TAB 5: STAFF PROGRESS & SKILLS DIRECTORY
-# ==========================================
-with tab_progress:
-  st.subheader("📈 Staff Skills Directory & Progress Overview")
-  st.markdown(
-      "Comprehensive view of all team members, certified skills, and performance"
-      " records."
-  )
-
-  search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
-
-  for person in st.session_state.staff_db:
-    if not search_query or search_query.lower() in person["name"].lower():
-      with st.expander(
-          f"👤 **{person['name']}** — Category: `{person['category']}`"
-      ):
-        col_p1, col_p2 = st.columns([1, 1.5])
-
-        with col_p1:
-          st.markdown(
-              "##### 🛠️ Certified Skills (Primary $\rightarrow$ Secondary"
-              " $\rightarrow$ Tertiary)"
-          )
-          skills = person.get("skills", [])
-          if skills:
-            for idx, sk in enumerate(skills):
-              tier_label = (
-                  ["Primary", "Secondary", "Tertiary"][idx]
-                  if idx < 3
-                  else "Extra"
-              )
-              st.markdown(f"- ✅ **{tier_label}:** {sk}")
-          else:
-            st.markdown("_No skills assigned_")
-
-        with col_p2:
-          st.markdown("##### 📊 Task Progress & KPI Records")
-          task_perf = person.get("task_performance", {})
-          if task_perf:
-            for t_name, metrics in task_perf.items():
-              kpi = metrics.get("kpi", 100.0)
-              qual = metrics.get("quality", "👍")
-              notes = metrics.get("notes", "")
-              note_text = f" | _Note: {notes}_" if notes else ""
-              st.markdown(
-                  f"- **{t_name}**: KPI **{kpi}** | Quality: {qual}{note_text}"
-              )
-          else:
-            st.markdown("_No KPI records logged yet_")
