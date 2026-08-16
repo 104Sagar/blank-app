@@ -36,13 +36,30 @@ st.markdown(
     .stApp {
         background: linear-gradient(135deg, #E6EFE9 0%, #F4F8F5 40%, #E2ECE5 100%) !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 13.5px;
+        font-size: 13px;
     }
     
     /* Compact Headings */
-    h1 { font-size: 1.5rem !important; margin-bottom: 0.3rem !important; }
-    h2 { font-size: 1.25rem !important; margin-top: 0.5rem !important; }
-    h3 { font-size: 1.05rem !important; margin-top: 0.4rem !important; }
+    h1 { font-size: 1.4rem !important; margin-bottom: 0.2rem !important; }
+    h2 { font-size: 1.15rem !important; margin-top: 0.4rem !important; }
+    h3 { font-size: 1.0rem !important; margin-top: 0.3rem !important; }
+
+    /* Force Streamlit Columns to Stay Side-by-Side on Mobile (Prevent Stacking) */
+    div[data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        gap: 0.4rem !important;
+        align-items: center !important;
+    }
+    div[data-testid="stColumn"] {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        padding: 0.1rem 0.2rem !important;
+        background: rgba(255, 255, 255, 0.85) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(27, 47, 33, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.9) !important;
+        margin-bottom: 0.3rem !important;
+    }
 
     /* Sidebar Styling */
     div[data-testid="stSidebar"] {
@@ -50,43 +67,32 @@ st.markdown(
         border-right: 1px solid rgba(46, 125, 50, 0.12) !important;
     }
 
-    /* Card Containers for Main Columns (Compact Padding) */
-    div[data-testid="stColumn"] {
-        background: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-radius: 12px !important;
-        padding: 0.6rem 0.8rem !important;
-        box-shadow: 0 4px 16px rgba(27, 47, 33, 0.04) !important;
-        border: 1px solid rgba(255, 255, 255, 0.9) !important;
-        margin-bottom: 0.5rem !important;
-    }
-
     /* Expanders */
     div[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         border: 1px solid #D5E3D8 !important;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02) !important;
-        margin-bottom: 0.5rem !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+        margin-bottom: 0.4rem !important;
     }
 
     /* Form Inputs */
     div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="base-input"] {
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         background-color: #FFFFFF !important;
         border: 1px solid #C5DACB !important;
+        font-size: 12.5px !important;
     }
 
     /* Primary Buttons & Form Submit Buttons */
     .stButton > button[kind="primary"], .stFormSubmitButton > button {
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%) !important;
         color: #FFFFFF !important;
         font-weight: 600 !important;
         border: none !important;
-        padding: 0.35rem 0.9rem !important;
-        box-shadow: 0 2px 8px rgba(45, 106, 79, 0.2) !important;
+        padding: 0.3rem 0.8rem !important;
+        box-shadow: 0 2px 6px rgba(45, 106, 79, 0.2) !important;
         transition: all 0.2s ease-in-out !important;
         width: 100% !important;
     }
@@ -96,17 +102,17 @@ st.markdown(
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        font-size: 1.1rem !important;
-        padding: 0.1rem 0.3rem !important;
+        font-size: 1.0rem !important;
+        padding: 0.1rem 0.2rem !important;
         color: #D32F2F !important;
         width: auto !important;
     }
 
     /* Code Output Box Styling */
     div[data-testid="stCodeBlock"] {
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         border: 1px solid #D1E0D5 !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02) !important;
     }
     </style>
 """,
