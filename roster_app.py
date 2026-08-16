@@ -1612,7 +1612,7 @@ with tab_old_calc:
   st.subheader("🧮 Workload & Overtime Status Dashboard")
   st.markdown(
       "Review the comprehensive workload, total man-hours, and weekly pace"
-      " per worker across all active tasks (including 3x weekly pollination)."
+      " per worker across all active tasks."
   )
 
   c_ctrl1, c_ctrl2 = st.columns(2)
@@ -1665,25 +1665,11 @@ with tab_old_calc:
       )
       task_mh = total_gh_plants / kpi_val if kpi_val > 0 else 0
 
-      # Factor 3x weekly for Clip/Shoot & Pollination task
-      if task_name == "Clip/Shoot & Pollination":
-        task_mh = (total_gh_plants / kpi_val) + (
-            (total_gh_plants / 2500.0) * 3
-        )
-        kpi_display = (
-            f"Clip/Shoot ({kpi_val:,.0f}) + Pollination 3x/wk (2,500)"
-        )
-      else:
-        kpi_display = f"KPI Rate: {kpi_val:,.1f} plants/worker/day"
-
+      kpi_display = f"KPI Rate: {kpi_val:,.1f} plants/worker/day"
       dur_avg = task_mh / staff_qty if staff_qty > 0 else 0
 
-      is_clip_shoot = "clip/shoot" in task_name.lower()
-      limit_ref = (
-          max_allowed_hours - ((9.0 / 5.0) * remaining_days)
-          if is_clip_shoot
-          else max_allowed_hours
-      )
+      # Compare against standard maximum allowed hours without arbitrary deductions
+      limit_ref = max_allowed_hours
 
       if dur_avg > limit_ref:
         status_badge = (
@@ -1819,7 +1805,6 @@ with tab_kpi:
             old_kpi = old_perf.get("kpi")
             old_qual = old_perf.get("quality")
 
-            # Push current rating to history log if valid
             history_list = old_perf.get("history", [])
             if old_kpi is not None:
               history_list.append({
@@ -1885,7 +1870,6 @@ with tab_progress:
                   " yet</small>"
               )
 
-          # Display Employee KPI Bar Chart
           if chart_data:
             st.markdown(
                 "<small style='color:#2D6A4F; font-weight:600;'>KPI Bar"
@@ -1901,11 +1885,10 @@ with tab_progress:
 with tab_row_tracker:
   st.subheader("📌 Task-Specific Greenhouse Row Progress Tracker")
   st.markdown(
-      "Because tasks start from different points to avoid clashes, track"
-      " completed rows **independently per task** below."
+      "Track completed rows independently per task, along with estimated"
+      " remaining work hours based on remaining rows."
   )
 
-  # Initialize task row progress dict in session state if missing
   active_tasks_list = list(st.session_state.active_tasks.keys())
   for t_name in active_tasks_list:
     if t_name not in st.session_state.task_row_progress:
@@ -1916,6 +1899,20 @@ with tab_row_tracker:
         task_name, 0
     )
 
+    # Calculate total man-hours required for this task based on current KPI
+    if task_name in ["Leading Hand", "Others"]:
+      task_total_mh = float(st.session_state.active_tasks.get(task_name, 2)) * 36.75
+    else:
+      kpi_val = float(
+          st.session_state.saved_avg_kpis.get(
+              task_name, st.session_state.task_targets.get(task_name, 600.0)
+          )
+      )
+      task_total_mh = total_gh_plants / kpi_val if kpi_val > 0 else 0.0
+
+    remaining_rows_count = 260 - current_task_completed
+    remaining_work_hours = (remaining_rows_count / 260.0) * task_total_mh
+
     st.markdown(
         f"<div style='background: #FFFFFF; padding: 14px 18px; border-radius: 10px; border: 1px solid #B5CBC0; box-shadow: 0 2px 6px rgba(0,0,0,0.02); margin-bottom: 15px;'>"
         f"<h4 style='margin: 0 0 8px 0; color: #1B4332;'>📋 {task_name}</h4>",
@@ -1923,9 +1920,7 @@ with tab_row_tracker:
     )
 
     c_b1, c_b2, c_b3, c_b4 = st.columns(4)
-    if c_b1.button(
-        "➕ 10 Rows", key=f"p10_{task_name}"
-    ):
+    if c_b1.button("➕ 10 Rows", key=f"p10_{task_name}"):
       st.session_state.task_row_progress[task_name] = min(
           260, current_task_completed + 10
       )
@@ -1940,9 +1935,7 @@ with tab_row_tracker:
       })
       st.rerun()
 
-    if c_b2.button(
-        "➕ 50 Rows", key=f"p50_{task_name}"
-    ):
+    if c_b2.button("➕ 50 Rows", key=f"p50_{task_name}"):
       st.session_state.task_row_progress[task_name] = min(
           260, current_task_completed + 50
       )
@@ -1957,9 +1950,7 @@ with tab_row_tracker:
       })
       st.rerun()
 
-    if c_b3.button(
-        "Reset", key=f"preset_{task_name}"
-    ):
+    if c_b3.button("Reset", key=f"preset_{task_name}"):
       st.session_state.task_row_progress[task_name] = 0
       save_settings({
           "completed_rows_count": saved_settings.get(
@@ -1972,9 +1963,7 @@ with tab_row_tracker:
       })
       st.rerun()
 
-    if c_b4.button(
-        "Complete All", key=f"pall_{task_name}"
-    ):
+    if c_b4.button("Complete All", key=f"pall_{task_name}"):
       st.session_state.task_row_progress[task_name] = 260
       save_settings({
           "completed_rows_count": saved_settings.get(
@@ -2007,7 +1996,11 @@ with tab_row_tracker:
 
     pct = (slider_val / 260.0) * 100.0
     st.markdown(
-        f"<p style='margin: 4px 0 0 0; color: #333; font-size: 0.9rem;'>Progress: <b>{slider_val} / 260 rows</b> ({pct:.1f}% completed) &nbsp;|&nbsp; Remaining: <b>{260 - slider_val} rows</b></p>",
+        f"<p style='margin: 4px 0 0 0; color: #333; font-size: 0.9rem;'>"
+        f"Progress: <b>{slider_val} / 260 rows</b> ({pct:.1f}% completed) &nbsp;|&nbsp; "
+        f"Remaining Rows: <b>{remaining_rows_count} rows</b> &nbsp;|&nbsp; "
+        f"Est. Remaining Work: <b style='color:#2D6A4F;'>{remaining_work_hours:,.1f}h</b>"
+        f"</p>",
         unsafe_allow_html=True,
     )
     st.progress(slider_val / 260.0)
