@@ -111,23 +111,36 @@ if "task_targets" not in st.session_state:
       "Others": 100.0,
   }
 
-# Default Staff Data
+# Default Staff Data with updated skills for Marie, Kid, Ting, Moka, Lin, Rosyfa
 DEFAULT_STAFF_DB = [
     {
         "name": "Marie",
         "category": "GG",
-        "skills": ["Truss Support", "Lowering", "De-leafing"],
+        "skills": [
+            "Truss Pruning",
+            "Truss Support",
+            "Clip/Shoot & Pollination",
+        ],
         "task_performance": {
-            "Truss Support": {"kpi": 130.0, "quality": "👍", "notes": ""},
-            "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""},
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
+            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
+            "Clip/Shoot & Pollination": {
+                "kpi": 674.0,
+                "quality": "👍",
+                "notes": "",
+            },
         },
     },
     {
         "name": "Kid",
         "category": "GG",
-        "skills": ["Truss Support", "Clip/Shoot & Pollination"],
+        "skills": [
+            "Truss Pruning",
+            "Truss Support",
+            "Clip/Shoot & Pollination",
+        ],
         "task_performance": {
+            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
             "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
@@ -139,10 +152,19 @@ DEFAULT_STAFF_DB = [
     {
         "name": "Ting",
         "category": "GG",
-        "skills": ["Truss Support", "Truss Pruning"],
+        "skills": [
+            "Truss Pruning",
+            "Truss Support",
+            "Clip/Shoot & Pollination",
+        ],
         "task_performance": {
+            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
             "Truss Support": {"kpi": 110.0, "quality": "👍", "notes": ""},
-            "Truss Pruning": {"kpi": 95.0, "quality": "👍", "notes": ""},
+            "Clip/Shoot & Pollination": {
+                "kpi": 674.0,
+                "quality": "👍",
+                "notes": "",
+            },
         },
     },
     {
@@ -282,19 +304,10 @@ DEFAULT_STAFF_DB = [
     {
         "name": "Rosyfa",
         "category": "Urson",
-        "skills": [
-            "Truss Pruning",
-            "Truss Support",
-            "Clip/Shoot & Pollination",
-        ],
+        "skills": ["Truss Pruning", "Truss Support"],
         "task_performance": {
             "Truss Pruning": {"kpi": 95.0, "quality": "👍", "notes": ""},
             "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
-            "Clip/Shoot & Pollination": {
-                "kpi": 674.0,
-                "quality": "👍",
-                "notes": "",
-            },
         },
     },
     {
@@ -375,18 +388,37 @@ DEFAULT_STAFF_DB = [
     {
         "name": "Lin",
         "category": "Urson",
-        "skills": ["Truss Support", "Lowering"],
+        "skills": [
+            "Truss Pruning",
+            "Clip/Shoot & Pollination",
+            "Truss Support",
+        ],
         "task_performance": {
+            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Clip/Shoot & Pollination": {
+                "kpi": 674.0,
+                "quality": "👍",
+                "notes": "",
+            },
             "Truss Support": {"kpi": 120.0, "quality": "👍", "notes": ""},
-            "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""},
         },
     },
     {
         "name": "Moka",
         "category": "Urson",
-        "skills": ["Truss Support"],
+        "skills": [
+            "Truss Pruning",
+            "Clip/Shoot & Pollination",
+            "Truss Support",
+        ],
         "task_performance": {
-            "Truss Support": {"kpi": 110.0, "quality": "👍", "notes": ""}
+            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Clip/Shoot & Pollination": {
+                "kpi": 674.0,
+                "quality": "👍",
+                "notes": "",
+            },
+            "Truss Support": {"kpi": 110.0, "quality": "👍", "notes": ""},
         },
     },
     {
