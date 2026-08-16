@@ -427,20 +427,19 @@ def load_and_sanitize_staff_data():
           person["task_performance"] = {}
           modified = True
 
-        # Migration rename check for old task names
         skills = person.get("skills", [])
         for i, sk in enumerate(skills):
           if sk in ["Truss Cluster Prune", "Pruning"]:
             skills[i] = "Truss Pruning"
             modified = True
 
-        # Also migrate task_performance dictionary keys
         tp = person.get("task_performance", {})
         for old_k in ["Truss Cluster Prune", "Pruning"]:
           if old_k in tp:
             tp["Truss Pruning"] = tp.pop(old_k)
             modified = True
 
+        # Clean up specific unwanted associations if needed, but respect user configuration
         for sk in skills:
           if sk not in person["task_performance"]:
             default_t = st.session_state.task_targets.get(sk, 100.0)
@@ -485,21 +484,25 @@ if "active_tasks" not in st.session_state:
 st.title("📋 Glasshouse 3 - Weekly Labor Booking Planner")
 st.markdown("---")
 
-# --- NAVIGATION TABS ---
-tab_planner, tab_kpi, tab_progress = st.tabs([
+# --- NAVIGATION TABS (NOW INCLUDING LABOR PLANNING CALCULATOR) ---
+(
+    tab_planner,
+    tab_kpi,
+    tab_progress,
+    tab_calc,
+) = st.tabs([
     "📋 Roster & Copy Lists",
     "⭐ Weekly Task-Specific KPI & Quality Tracker",
     "📈 Staff Progress & Skills",
+    "🌱 Labor Planning Calculator",
 ])
 
 # ==========================================
 # TAB 1: ROSTER PLANNER & COPY LISTS
 # ==========================================
 with tab_planner:
-  # --- SIDEBAR CONTROLS ---
   st.sidebar.header("⚙️ Roster & Staff Controls")
 
-  # 1. Add New Staff
   with st.sidebar.expander("➕ Add New Staff Member"):
     with st.form("add_staff_form", clear_on_submit=True):
       new_name = st.text_input("Name")
@@ -539,7 +542,6 @@ with tab_planner:
         st.sidebar.success(f"Added {new_name}!")
         st.rerun()
 
-  # 2. Update / Train Staff Skills
   with st.sidebar.expander("🎓 Update / Train Staff Skills", expanded=False):
     staff_names = [s["name"] for s in st.session_state.staff_db]
     selected_member_name = st.selectbox(
@@ -616,7 +618,6 @@ with tab_planner:
             )
             st.rerun()
 
-  # 3. Master Skills List & Target KPIs (Editable)
   with st.sidebar.expander("🎯 Master Skills & Target KPIs"):
     st.markdown("**Set Target KPI per Task (Editable):**")
     updated_targets = {}
@@ -646,7 +647,6 @@ with tab_planner:
         st.sidebar.success(f"Added Skill: {add_skill_direct.strip()}")
         st.rerun()
 
-  # 4. Remove Staff
   with st.sidebar.expander("🗑️ Permanent Remove Staff"):
     staff_names = [s["name"] for s in st.session_state.staff_db]
     to_remove = st.selectbox("Select Staff to Remove", options=[""] + staff_names)
@@ -659,7 +659,6 @@ with tab_planner:
         st.sidebar.warning(f"Removed {to_remove}")
         st.rerun()
 
-  # 5. Backup Data
   with st.sidebar.expander("💾 Backup / Export Data"):
     json_data = json.dumps(st.session_state.staff_db, indent=4)
     st.download_button(
@@ -671,7 +670,6 @@ with tab_planner:
 
   st.sidebar.markdown("---")
 
-  # --- MAIN FORM INPUTS ---
   col_left, col_right = st.columns([1, 1.2])
 
   with col_left:
@@ -791,14 +789,10 @@ with tab_planner:
         })
 
 
-  # PASS 1: Primary Skills (Green)
   allocate_by_tier(0, "Primary")
-  # PASS 2: Secondary Skills (Yellow)
   allocate_by_tier(1, "Secondary")
-  # PASS 3: Tertiary Skills (Black)
   allocate_by_tier(2, "Tertiary")
 
-  # PASS 4: Fallback fill for remaining unfilled spots (Red / No Match)
   for task_name, req_count in task_requirements.items():
     while len(allocated_roster[task_name]) < req_count:
       assigned_flat = [
@@ -820,7 +814,6 @@ with tab_planner:
   ]
   unassigned_staff = [p for p in available_pool if p not in assigned_staff_flat]
 
-  # --- LEGEND DISPLAY ---
   st.markdown(
       "**Skill Match Color Legend:** "
       "🟢 <span style='color:green; font-weight:600;'>Primary Skill</span>"
@@ -834,7 +827,6 @@ with tab_planner:
   )
   st.markdown("---")
 
-  # --- DISPLAY RESULTS & TWO COPY-PASTE LISTS ---
   col1, col2 = st.columns([1, 1.2])
 
   with col1:
@@ -868,7 +860,6 @@ with tab_planner:
   with col2:
     st.markdown("### 📱 Copy-Paste Ready Lists")
 
-    # BOX 1: LIST BY TASK
     task_text_output = "GH3 - WEEKLY LABOR BOOKING REQUEST (BY TASK)\n"
     task_text_output += f"Total Staff Required: {total_requested}\n"
     task_text_output += "-----------------------------------\n\n"
@@ -895,7 +886,6 @@ with tab_planner:
     st.markdown("**1. Grouped by Task Heading:**")
     st.code(task_text_output, language="text")
 
-    # BOX 2: LIST BY EMPLOYEE CATEGORY
     category_map = {"GG": [], "Leading Hand": [], "TOTC": [], "Urson": []}
 
     for task, entries in allocated_roster.items():
@@ -1102,3 +1092,45 @@ with tab_progress:
               )
           else:
             st.markdown("_No KPI records logged yet_")
+
+
+# ==========================================
+# TAB 4: LABOR PLANNING CALCULATOR (INTEGRATED)
+# ==========================================
+with tab_calc:
+  st.subheader("🌱 Labor Planning & Calculation Calculator")
+  st.markdown(
+      "Calculate total required labor hours, area outputs, or stem counts"
+      " directly inside your planner."
+  )
+
+  c_in1, c_in2 = st.columns(2)
+  with c_in1:
+    total_area_m2 = st.number_input(
+        "Total Glasshouse Area (m²)", min_value=100.0, value=10000.0, step=500.0
+    )
+    stems_per_m2 = st.number_input(
+        "Stems / Plants per m²", min_value=1.0, value=3.5, step=0.1
+    )
+  with c_in2:
+    target_task_select = st.selectbox(
+        "Select Task for Calculation", options=st.session_state.skills_list
+    )
+    norm_rate_per_hour = st.number_input(
+        "Expected Output Rate per Hour (e.g. stems/hr)",
+        min_value=1.0,
+        value=65.0,
+        step=5.0,
+    )
+
+  total_plants = total_area_m2 * stems_per_m2
+  estimated_total_hours = (
+      total_plants / norm_rate_per_hour if norm_rate_per_hour > 0 else 0
+  )
+  estimated_staff_needed_40h = estimated_total_hours / 40.0
+
+  st.markdown("---")
+  res1, res2, res3 = st.columns(3)
+  res1.metric("Total Plant/Stem Count", f"{total_plants:,.0f}")
+  res2.metric("Total Estimated Labor Hours", f"{estimated_total_hours:,.1f} hrs")
+  res3.metric("Staff Required (at 40 hrs/week)", f"{estimated_staff_needed_40h:,.1f} workers")
