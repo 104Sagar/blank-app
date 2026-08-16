@@ -4,17 +4,17 @@ import pandas as pd
 # Page setup
 st.set_page_config(page_title="GG Labor Roster Planner", page_icon="📋", layout="wide")
 
-# Custom soothing high-contrast theme styling
+# Custom soothing faint-green theme styling
 st.markdown("""
     <style>
-    /* Main Background - Soft Neutral Gray/Blue */
+    /* Main Background - Faint Soothing Green */
     .stApp {
-        background-color: #F4F6F9 !important;
+        background-color: #F2F7F4 !important;
     }
     
-    /* Sidebar Background */
+    /* Sidebar Background - Soft Mint Accent */
     div[data-testid="stSidebar"] {
-        background-color: #EBF0F5 !important;
+        background-color: #E3EFE8 !important;
     }
     
     /* Input Boxes and Cards */
@@ -23,17 +23,9 @@ st.markdown("""
         border-radius: 6px;
     }
     
-    /* Task Header Blocks */
-    .task-header {
-        background-color: #E2E8F0;
-        padding: 10px;
-        border-radius: 6px;
-        font-weight: bold;
-    }
-    
     /* Clean Text Containers */
     .stMarkdown, .stText {
-        color: #1E293B;
+        color: #1A2E22;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -44,49 +36,49 @@ if 'skills_list' not in st.session_state:
         "Clip/Shoot + Pollination",
         "Truss Support",
         "De-leafing",
-        "Others",
-        "Leading Hand",
         "Lowering",
-        "Pruning"
+        "Pruning",
+        "Leading Hand",
+        "Others"
     ]
 
-# --- INITIALIZE STAFF DATABASE ---
+# --- INITIALIZE MULTI-SKILL STAFF DATABASE ---
 if 'staff_db' not in st.session_state:
     st.session_state.staff_db = [
         # GG Members
-        {"name": "Marie", "category": "GG", "primary_task": "Truss Support", "notes": "Must work"},
-        {"name": "Kid", "category": "GG", "primary_task": "Truss Support", "notes": "Must work"},
-        {"name": "Ting", "category": "GG", "primary_task": "Truss Support", "notes": "Must work"},
+        {"name": "Marie", "category": "GG", "skills": ["Truss Support", "Lowering", "De-leafing"], "notes": "Must work"},
+        {"name": "Kid", "category": "GG", "skills": ["Truss Support", "Clip/Shoot + Pollination", "None"], "notes": "Must work"},
+        {"name": "Ting", "category": "GG", "skills": ["Truss Support", "Pruning", "None"], "notes": "Must work"},
         
         # Leading Hands
-        {"name": "Rebecca", "category": "Leading Hand", "primary_task": "Leading Hand", "notes": "Supervising"},
-        {"name": "Rene", "category": "Leading Hand", "primary_task": "Leading Hand", "notes": "Sulphur Pots"},
+        {"name": "Rebecca", "category": "Leading Hand", "skills": ["Leading Hand", "None", "None"], "notes": "Supervising"},
+        {"name": "Rene", "category": "Leading Hand", "skills": ["Leading Hand", "Others", "None"], "notes": "Sulphur Pots"},
         
-        # TOTC Members (Min 30 hrs)
-        {"name": "Alfredo", "category": "TOTC", "primary_task": "Clip/Shoot + Pollination", "notes": "Min 30h"},
-        {"name": "Enock", "category": "TOTC", "primary_task": "Clip/Shoot + Pollination", "notes": "Min 30h"},
-        {"name": "Dick", "category": "TOTC", "primary_task": "Clip/Shoot + Pollination", "notes": "Min 30h"},
-        {"name": "Dan", "category": "TOTC", "primary_task": "De-leafing", "notes": "Min 30h"},
-        {"name": "Will", "category": "TOTC", "primary_task": "De-leafing", "notes": "Min 30h"},
-        {"name": "Terry", "category": "TOTC", "primary_task": "Others", "notes": "Min 30h"},
+        # TOTC Members
+        {"name": "Alfredo", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Truss Support", "Lowering"], "notes": "Min 30h"},
+        {"name": "Enock", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "De-leafing", "None"], "notes": "Min 30h"},
+        {"name": "Dick", "category": "TOTC", "skills": ["Clip/Shoot + Pollination", "Pruning", "None"], "notes": "Min 30h"},
+        {"name": "Dan", "category": "TOTC", "skills": ["De-leafing", "Lowering", "None"], "notes": "Min 30h"},
+        {"name": "Will", "category": "TOTC", "skills": ["De-leafing", "Truss Support", "None"], "notes": "Min 30h"},
+        {"name": "Terry", "category": "TOTC", "skills": ["Others", "De-leafing", "None"], "notes": "Min 30h"},
         
-        # Ursons (Casuals)
-        {"name": "Nikki", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": ""},
-        {"name": "Piayamat (Bina)", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": ""},
-        {"name": "Tiara", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": ""},
-        {"name": "Shisir", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": ""},
-        {"name": "Rosyfa", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": ""},
-        {"name": "Tommy", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": ""},
-        {"name": "Audrey", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": ""},
-        {"name": "Han", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": ""},
-        {"name": "Rosie", "category": "Urson", "primary_task": "Clip/Shoot + Pollination", "notes": "Mon-Wed Only"},
-        {"name": "Dhia", "category": "Urson", "primary_task": "De-leafing", "notes": ""},
-        {"name": "Cassy", "category": "Urson", "primary_task": "De-leafing", "notes": ""},
-        {"name": "Erica", "category": "Urson", "primary_task": "De-leafing", "notes": ""},
-        {"name": "Lin", "category": "Urson", "primary_task": "Truss Support", "notes": ""},
-        {"name": "Moka", "category": "Urson", "primary_task": "Truss Support", "notes": ""},
-        {"name": "Panyawat", "category": "Urson", "primary_task": "Others", "notes": "Cleaning"},
-        {"name": "AkashDeep", "category": "Urson", "primary_task": "Others", "notes": "Stem Supports"}
+        # Ursons
+        {"name": "Nikki", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "De-leafing", "None"], "notes": ""},
+        {"name": "Piayamat (Bina)", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Truss Support", "None"], "notes": ""},
+        {"name": "Tiara", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": ""},
+        {"name": "Shisir", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Lowering", "None"], "notes": ""},
+        {"name": "Rosyfa", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": ""},
+        {"name": "Tommy", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "Others", "None"], "notes": ""},
+        {"name": "Audrey", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": ""},
+        {"name": "Han", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": ""},
+        {"name": "Rosie", "category": "Urson", "skills": ["Clip/Shoot + Pollination", "None", "None"], "notes": "Mon-Wed Only"},
+        {"name": "Dhia", "category": "Urson", "skills": ["De-leafing", "Pruning", "None"], "notes": ""},
+        {"name": "Cassy", "category": "Urson", "skills": ["De-leafing", "None", "None"], "notes": ""},
+        {"name": "Erica", "category": "Urson", "skills": ["De-leafing", "Truss Support", "None"], "notes": ""},
+        {"name": "Lin", "category": "Urson", "skills": ["Truss Support", "Lowering", "None"], "notes": ""},
+        {"name": "Moka", "category": "Urson", "skills": ["Truss Support", "None", "None"], "notes": ""},
+        {"name": "Panyawat", "category": "Urson", "skills": ["Others", "None", "None"], "notes": "Cleaning"},
+        {"name": "AkashDeep", "category": "Urson", "skills": ["Others", "None", "None"], "notes": "Stem Supports"}
     ]
 
 # Default Active Tasks Setup
@@ -101,44 +93,40 @@ if 'active_tasks' not in st.session_state:
 
 # Header
 st.title("📋 Glasshouse 3 - Weekly Labor Booking Planner")
-st.markdown("Dynamic task & skill planner with GG, TOTC, and Urson priority allocation.")
+st.markdown("Dynamic multi-skill planner with GG, TOTC, and Urson priority allocation.")
 st.markdown("---")
 
 # --- SIDEBAR: STAFF & SKILL CONTROLS ---
 st.sidebar.header("⚙️ Roster & Staff Controls")
 
-# Option to add new staff & custom skills
+# Add New Staff with up to 3 skills
 with st.sidebar.expander("➕ Add New Staff Member"):
     new_name = st.text_input("Name")
     new_cat = st.selectbox("Category", ["GG", "TOTC", "Urson", "Leading Hand"])
     
-    # Skill Selector with option to add a brand new skill
-    skill_options = st.session_state.skills_list + ["➕ Add New Custom Skill..."]
-    selected_skill = st.selectbox("Primary Skill/Task", skill_options)
+    opts = st.session_state.skills_list
+    skill1 = st.selectbox("Primary Skill (1st Priority)", opts)
+    skill2 = st.selectbox("Secondary Skill (2nd Priority)", ["None"] + opts)
+    skill3 = st.selectbox("Tertiary Skill (3rd Priority)", ["None"] + opts)
     
-    final_skill = selected_skill
-    if selected_skill == "➕ Add New Custom Skill...":
-        custom_skill_input = st.text_input("Enter New Skill Name")
-        if custom_skill_input.strip():
-            final_skill = custom_skill_input.strip()
-
     new_note = st.text_input("Notes (e.g. Mon-Wed only)")
     
     if st.button("Add Staff"):
-        if new_name.strip() and final_skill and final_skill != "➕ Add New Custom Skill...":
-            if final_skill not in st.session_state.skills_list:
-                st.session_state.skills_list.append(final_skill)
-                
+        if new_name.strip():
+            skills_arr = [skill1]
+            if skill2 != "None": skills_arr.append(skill2)
+            if skill3 != "None": skills_arr.append(skill3)
+            
             st.session_state.staff_db.append({
                 "name": new_name.strip(), 
                 "category": new_cat, 
-                "primary_task": final_skill, 
+                "skills": skills_arr, 
                 "notes": new_note
             })
-            st.sidebar.success(f"Added {new_name} ({final_skill})")
+            st.sidebar.success(f"Added {new_name}")
             st.rerun()
 
-# Option to manage skill master list directly
+# Master Skills List
 with st.sidebar.expander("🏷️ Master Skills List"):
     st.markdown("**Current Skills:**")
     for s in st.session_state.skills_list:
@@ -151,7 +139,7 @@ with st.sidebar.expander("🏷️ Master Skills List"):
             st.sidebar.success(f"Added Skill: {add_skill_direct.strip()}")
             st.rerun()
 
-# Option to remove staff permanently
+# Permanent Remove Staff
 with st.sidebar.expander("🗑️ Permanent Remove Staff"):
     staff_names = [s["name"] for s in st.session_state.staff_db]
     to_remove = st.selectbox("Select Staff to Remove", options=[""] + staff_names)
@@ -197,7 +185,6 @@ with col_right:
 
     st.markdown("**Adjust Required Headcount or Delete Tasks:**")
     
-    # Render all active tasks with headcount adjuster and delete button
     updated_tasks = {}
     tasks_to_delete = []
     
@@ -211,7 +198,6 @@ with col_right:
         else:
             updated_tasks[task_name] = new_cnt
 
-    # Remove deleted tasks
     for d_task in tasks_to_delete:
         if d_task in updated_tasks:
             del updated_tasks[d_task]
@@ -225,57 +211,56 @@ total_requested = sum(task_requirements.values())
 
 st.markdown("---")
 
-# --- ALLOCATION ENGINE ---
-# Filter available staff
+# --- MULTI-SKILL SMART ALLOCATION ENGINE ---
 available_pool = [s for s in st.session_state.staff_db if s["name"] not in absent_staff]
 
-# Sorting priority: 1. GG (Must work), 2. TOTC (Min 30h), 3. Ursons
+# Sorting priority: GG (1) > TOTC/Leading Hand (2) > Urson (3)
 priority_map = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
 available_pool.sort(key=lambda x: priority_map.get(x["category"], 4))
 
 allocated_roster = {task: [] for task in task_requirements}
 unassigned_staff = []
 
-# Step 1: Assign Primary Tasks based on Skills & Category Priority
 for person in available_pool:
     assigned = False
-    p_task = person["primary_task"]
+    person_skills = person.get("skills", [person.get("primary_task", "Others")])
     
-    if p_task in task_requirements and len(allocated_roster[p_task]) < task_requirements[p_task]:
-        allocated_roster[p_task].append(person)
-        assigned = True
-    else:
-        if person["category"] in ["GG", "TOTC"]:
-            for task, req_count in task_requirements.items():
-                if task != "Leading Hand" and len(allocated_roster[task]) < req_count:
-                    allocated_roster[task].append(person)
-                    assigned = True
-                    break
-    
+    # Check Skill 1, Skill 2, Skill 3 in order
+    for sk in person_skills:
+        if sk in task_requirements and len(allocated_roster[sk]) < task_requirements[sk]:
+            allocated_roster[sk].append(person)
+            assigned = True
+            break
+            
+    # Fallback for GG / TOTC staff if primary skills are full but other tasks need labor
+    if not assigned and person["category"] in ["GG", "TOTC"]:
+        for task, req_count in task_requirements.items():
+            if task != "Leading Hand" and len(allocated_roster[task]) < req_count:
+                allocated_roster[task].append(person)
+                assigned = True
+                break
+                
     if not assigned:
         unassigned_staff.append(person)
 
 # --- DISPLAY RESULTS ---
 st.subheader(f"📊 Labor Allocation Plan (Total Requested: {total_requested} Staff)")
 
-# 2-Column Side-by-Side Roster Table & Quick Copy
 col1, col2 = st.columns([1.2, 1])
 
 with col1:
-    st.markdown("### 📋 Roster Breakdown (Name | Category | Task)")
+    st.markdown("### 📋 Roster Breakdown (Name | Category | Skills)")
     
-    roster_rows = []
     for task, members in allocated_roster.items():
         st.markdown(f"**{task} (Total: {len(members)} / {task_requirements[task]})**")
         for m in members:
-            note_str = f" ({m['notes']})" if m['notes'] else ""
-            st.write(f"- **{m['name']}** [{m['category']}]{note_str}")
-            roster_rows.append({"Name": m["name"], "Category": m["category"], "Task": task, "Notes": m["notes"]})
+            skills_str = ", ".join(m.get("skills", []))
+            note_str = f" — *{m['notes']}*" if m['notes'] else ""
+            st.write(f"- **{m['name']}** [{m['category']}] (Skills: {skills_str}){note_str}")
         st.markdown("---")
 
 with col2:
     st.markdown("### 📱 Copy-Paste Text Request for Booking")
-    st.markdown("Copy this exact summary block to send via Message or WhatsApp:")
     
     text_output = f"GH3 - WEEKLY LABOR BOOKING REQUEST\n"
     text_output += f"Total Staff Required: {total_requested}\n"
@@ -295,6 +280,5 @@ with col2:
 
     st.code(text_output, language="text")
 
-# Unallocated / Excluded Warning
 if unassigned_staff:
-    st.warning(f"⚠️ **{len(unassigned_staff)} Available Staff Not Called/Allocated:** " + ", ".join([u["name"] for u in unassigned_staff]))
+    st.warning(f"⚠️ **{len(unassigned_staff)} Available Staff Not Allocated:** " + ", ".join([u["name"] for u in unassigned_staff]))
