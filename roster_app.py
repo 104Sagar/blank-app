@@ -28,58 +28,65 @@ def save_settings(settings_dict):
     json.dump(settings_dict, f, indent=4)
 
 
-# --- PREMIUM MODERN UI CSS STYLING ---
+# --- PREMIUM COMPACT MOBILE-FRIENDLY CSS STYLING ---
 st.markdown(
     """
     <style>
-    /* Main App Background */
+    /* Main App Background & Typography */
     .stApp {
         background: linear-gradient(135deg, #E6EFE9 0%, #F4F8F5 40%, #E2ECE5 100%) !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 13.5px;
     }
     
+    /* Compact Headings */
+    h1 { font-size: 1.5rem !important; margin-bottom: 0.3rem !important; }
+    h2 { font-size: 1.25rem !important; margin-top: 0.5rem !important; }
+    h3 { font-size: 1.05rem !important; margin-top: 0.4rem !important; }
+
     /* Sidebar Styling */
     div[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #DCE7DF 0%, #E8F0EA 100%) !important;
         border-right: 1px solid rgba(46, 125, 50, 0.12) !important;
     }
 
-    /* Card Containers for Main Columns */
+    /* Card Containers for Main Columns (Compact Padding) */
     div[data-testid="stColumn"] {
-        background: rgba(255, 255, 255, 0.82) !important;
+        background: rgba(255, 255, 255, 0.85) !important;
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border-radius: 16px !important;
-        padding: 1rem !important;
-        box-shadow: 0 8px 24px rgba(27, 47, 33, 0.05) !important;
+        border-radius: 12px !important;
+        padding: 0.6rem 0.8rem !important;
+        box-shadow: 0 4px 16px rgba(27, 47, 33, 0.04) !important;
         border: 1px solid rgba(255, 255, 255, 0.9) !important;
+        margin-bottom: 0.5rem !important;
     }
 
     /* Expanders */
     div[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         border: 1px solid #D5E3D8 !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
-        margin-bottom: 0.75rem !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02) !important;
+        margin-bottom: 0.5rem !important;
     }
 
     /* Form Inputs */
     div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="base-input"] {
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         background-color: #FFFFFF !important;
         border: 1px solid #C5DACB !important;
     }
 
     /* Primary Buttons & Form Submit Buttons */
     .stButton > button[kind="primary"], .stFormSubmitButton > button {
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%) !important;
         color: #FFFFFF !important;
         font-weight: 600 !important;
         border: none !important;
-        padding: 0.45rem 1.1rem !important;
-        box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2) !important;
+        padding: 0.35rem 0.9rem !important;
+        box-shadow: 0 2px 8px rgba(45, 106, 79, 0.2) !important;
         transition: all 0.2s ease-in-out !important;
         width: 100% !important;
     }
@@ -89,17 +96,17 @@ st.markdown(
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        font-size: 1.2rem !important;
-        padding: 0.2rem 0.4rem !important;
+        font-size: 1.1rem !important;
+        padding: 0.1rem 0.3rem !important;
         color: #D32F2F !important;
         width: auto !important;
     }
 
     /* Code Output Box Styling */
     div[data-testid="stCodeBlock"] {
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         border: 1px solid #D1E0D5 !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
     }
     </style>
 """,
@@ -494,7 +501,6 @@ def load_and_sanitize_staff_data():
 
   modified = False
 
-  # Ensure Tico is always present as a Leading Hand
   tico_found = False
   for person in data:
     if person.get("name") == "Tico":
@@ -574,390 +580,44 @@ if "active_tasks" not in st.session_state:
   }
   st.session_state.active_tasks = saved_settings.get("active_tasks", default_tasks)
 
-# Calculator Session State Defaults (Area fixed at 5 ha = 50,000 m², Rows fixed at 260)
-if "calc_area_ha" not in st.session_state:
-  st.session_state.calc_area_ha = 5.0
-if "calc_rows" not in st.session_state:
-  st.session_state.calc_rows = 260
-if "calc_plants_per_sqm" not in st.session_state:
-  st.session_state.calc_plants_per_sqm = 2.50
+# Calculator Session State Defaults (Area = 5 ha, Rows = 260, Plant Density per Row = 480)
+if "calc_plants_per_row" not in st.session_state:
+  st.session_state.calc_plants_per_row = 480.0
 
-# Compute derived values
-gh_area_sqm = st.session_state.calc_area_ha * 10000.0
-total_gh_plants = gh_area_sqm * st.session_state.calc_plants_per_sqm
-st.session_state.calc_plants_per_row = (
-    total_gh_plants / st.session_state.calc_rows
-    if st.session_state.calc_rows > 0
-    else 0
-)
+total_gh_plants = 260 * st.session_state.calc_plants_per_row
+plant_density_sqm = total_gh_plants / 50000.0
 
 # Title
-st.title("📋 Glasshouse 3 - Weekly Labor Planner")
+st.title("📋 GH3 Labor Planner")
 st.markdown("---")
 
-# --- TAB ORDER (Smart Headcount & Shift Hours is 2nd) ---
-(
-    tab_planner,
-    tab_smart_calc,
-    tab_old_calc,
-    tab_kpi,
-    tab_progress,
-) = st.tabs([
-    "📋 Roster & Copy Lists",
-    "📊 Smart Headcount & Shift Hours",
-    "🧮 Advanced Workload & Overtime Status",
-    "⭐ Weekly Task-Specific KPI & Quality Tracker",
-    "📈 Staff Progress & Skills",
-])
+# --- GLOBAL ALLOCATION ENGINE (COMPUTED FOR COPY LISTS & ALLOCATION TABS) ---
+# We collect absenteeism and leading hands from session state or defaults if not rendered yet
+absent_staff = st.session_state.get("absent_staff_input", [])
+leading_hands_db_init = [
+    s for s in st.session_state.staff_db if s["category"] == "Leading Hand"
+]
+lh_names_init = [lh["name"] for lh in leading_hands_db_init]
+selected_leading_hands = st.session_state.get(
+    "selected_leading_hands_filter", lh_names_init
+)
 
-# ==========================================
-# TAB 1: ROSTER PLANNER & COPY LISTS
-# ==========================================
-with tab_planner:
-  st.sidebar.header("⚙️ Roster & Staff Controls")
+available_pool = [
+    s
+    for s in st.session_state.staff_db
+    if s["name"] not in absent_staff
+    and (s["category"] != "Leading Hand" or s["name"] in selected_leading_hands)
+]
+cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
+task_requirements = {
+    t: c for t, c in st.session_state.active_tasks.items() if c > 0
+}
+total_requested = sum(task_requirements.values())
 
-  with st.sidebar.expander("➕ Add New Staff Member"):
-    with st.form("add_staff_form", clear_on_submit=True):
-      new_name = st.text_input("Name")
-      new_cat = st.selectbox(
-          "Category", ["GG", "TOTC", "Urson", "Leading Hand"]
-      )
-
-      opts = st.session_state.skills_list
-      skill1 = st.selectbox("Primary Skill (1st Priority)", opts)
-      skill2 = st.selectbox(
-          "Secondary Skill (2nd Priority, Optional)", ["None"] + opts
-      )
-      skill3 = st.selectbox(
-          "Tertiary Skill (3rd Priority, Optional)", ["None"] + opts
-      )
-
-      submit_add = st.form_submit_button("Add Staff")
-      if submit_add and new_name.strip():
-        skills_arr = [skill1]
-        if skill2 != "None":
-          skills_arr.append(skill2)
-        if skill3 != "None":
-          skills_arr.append(skill3)
-
-        t_perf = {}
-        for sk in skills_arr:
-          def_t = st.session_state.task_targets.get(sk, 100.0)
-          t_perf[sk] = {"kpi": def_t, "quality": "👍", "notes": ""}
-
-        st.session_state.staff_db.append({
-            "name": new_name.strip(),
-            "category": new_cat,
-            "skills": skills_arr,
-            "task_performance": t_perf,
-        })
-        save_staff_data(st.session_state.staff_db)
-        st.sidebar.success(f"Added {new_name}!")
-        st.rerun()
-
-  with st.sidebar.expander("🎓 Update / Train Staff Skills", expanded=False):
-    staff_names = [s["name"] for s in st.session_state.staff_db]
-    selected_member_name = st.selectbox(
-        "Select Team Member", options=[""] + staff_names, key="skill_select_member"
-    )
-
-    if selected_member_name:
-      person = next(
-          (
-              s
-              for s in st.session_state.staff_db
-              if s["name"] == selected_member_name
-          ),
-          None,
-      )
-      if person:
-        curr_skills = person.get("skills", [])
-        opts = st.session_state.skills_list
-
-        p_skill = (
-            curr_skills[0]
-            if len(curr_skills) > 0 and curr_skills[0] in opts
-            else opts[0]
-        )
-        s_skill = (
-            curr_skills[1]
-            if len(curr_skills) > 1 and curr_skills[1] in opts
-            else "None"
-        )
-        t_skill = (
-            curr_skills[2]
-            if len(curr_skills) > 2 and curr_skills[2] in opts
-            else "None"
-        )
-
-        with st.form(key=f"update_skills_form_{selected_member_name}"):
-          up_skill1 = st.selectbox(
-              "Primary Skill (1st Priority)", opts, index=opts.index(p_skill)
-          )
-          up_skill2 = st.selectbox(
-              "Secondary Skill (2nd Priority)",
-              ["None"] + opts,
-              index=(["None"] + opts).index(s_skill),
-          )
-          up_skill3 = st.selectbox(
-              "Tertiary Skill (3rd Priority)",
-              ["None"] + opts,
-              index=(["None"] + opts).index(t_skill),
-          )
-
-          submit_update = st.form_submit_button("Save Trained Skills")
-          if submit_update:
-            new_s_arr = [up_skill1]
-            if up_skill2 != "None":
-              new_s_arr.append(up_skill2)
-            if up_skill3 != "None":
-              new_s_arr.append(up_skill3)
-
-            person["skills"] = new_s_arr
-            if "task_performance" not in person:
-              person["task_performance"] = {}
-            for sk in new_s_arr:
-              if sk not in person["task_performance"]:
-                def_t = st.session_state.task_targets.get(sk, 100.0)
-                person["task_performance"][sk] = {
-                    "kpi": def_t,
-                    "quality": "👍",
-                    "notes": "",
-                }
-
-            save_staff_data(st.session_state.staff_db)
-            st.sidebar.success(
-                f"Updated skills for {selected_member_name}!"
-            )
-            st.rerun()
-
-  with st.sidebar.expander("🎯 Master Skills & Target KPIs"):
-    st.markdown("**Set Target KPI per Task (Editable):**")
-    updated_targets = {}
-    for s in st.session_state.skills_list:
-      current_target = st.session_state.task_targets.get(s, 100.0)
-      t_val = st.number_input(
-          f"{s}",
-          min_value=0.0,
-          value=float(current_target),
-          step=1.0,
-          key=f"target_kpi_{s}",
-      )
-      updated_targets[s] = t_val
-    st.session_state.task_targets = updated_targets
-
-    curr_settings = load_settings()
-    curr_settings["task_targets"] = updated_targets
-    save_settings(curr_settings)
-
-    st.markdown("---")
-    add_skill_direct = st.text_input(
-        "Add New Skill to System", key="add_skill_direct_key"
-    )
-    if st.button("Save New Skill", type="primary"):
-      if (
-          add_skill_direct.strip()
-          and add_skill_direct.strip() not in st.session_state.skills_list
-      ):
-        st.session_state.skills_list.append(add_skill_direct.strip())
-        st.session_state.task_targets[add_skill_direct.strip()] = 100.0
-        curr_settings = load_settings()
-        curr_settings["task_targets"] = st.session_state.task_targets
-        save_settings(curr_settings)
-        st.sidebar.success(f"Added Skill: {add_skill_direct.strip()}")
-        st.rerun()
-
-  with st.sidebar.expander("🗑️ Permanent Remove Staff"):
-    staff_names = [s["name"] for s in st.session_state.staff_db]
-    to_remove = st.selectbox("Select Staff to Remove", options=[""] + staff_names)
-    if st.button("Delete Permanently", type="primary"):
-      if to_remove:
-        st.session_state.staff_db = [
-            s for s in st.session_state.staff_db if s["name"] != to_remove
-        ]
-        save_staff_data(st.session_state.staff_db)
-        st.sidebar.warning(f"Removed {to_remove}")
-        st.rerun()
-
-  with st.sidebar.expander("💾 Backup / Export Data"):
-    json_data = json.dumps(st.session_state.staff_db, indent=4)
-    st.download_button(
-        label="📥 Download Staff DB Backup",
-        data=json_data,
-        file_name="staff_db_backup.json",
-        mime="application/json",
-    )
-
-  st.sidebar.markdown("---")
-
-  col_left, col_right = st.columns([1, 1.2])
-
-  with col_left:
-    st.subheader("1. Availability Check")
-    all_names = [s["name"] for s in st.session_state.staff_db]
-    absent_staff = st.multiselect(
-        "Select staff absent / on leave for next week:", options=all_names
-    )
-
-    leading_hands_db = [
-        s for s in st.session_state.staff_db if s["category"] == "Leading Hand"
-    ]
-    lh_names = [lh["name"] for lh in leading_hands_db]
-    st.markdown("---")
-    st.subheader("⭐ Leading Hand Selection")
-
-    if "selected_leading_hands_filter" not in st.session_state:
-      st.session_state["selected_leading_hands_filter"] = lh_names
-    else:
-      for name in lh_names:
-        if name not in st.session_state["selected_leading_hands_filter"]:
-          st.session_state["selected_leading_hands_filter"].append(name)
-
-    selected_leading_hands = st.multiselect(
-        "Select Leading Hands to Keep Active:",
-        options=lh_names,
-        key="selected_leading_hands_filter",
-    )
-
-  with col_right:
-    st.subheader("2. Weekly Task Headcounts")
-
-    with st.expander("➕ Add Task Heading", expanded=False):
-      task_add_options = st.session_state.skills_list + ["➕ Other Custom Task"]
-      chosen_task_opt = st.selectbox("Select Task Heading", task_add_options)
-
-      task_name_to_add = chosen_task_opt
-      if chosen_task_opt == "➕ Other Custom Task":
-        custom_t_input = st.text_input("Type Custom Task Heading")
-        if custom_t_input.strip():
-          task_name_to_add = custom_t_input.strip()
-
-      new_task_headcount = st.number_input("Headcount Needed", min_value=1, value=4)
-
-      if st.button("Add Task to Roster", type="primary"):
-        if task_name_to_add and task_name_to_add != "➕ Other Custom Task":
-          if task_name_to_add not in st.session_state.skills_list:
-            st.session_state.skills_list.append(task_name_to_add)
-            st.session_state.task_targets[task_name_to_add] = 100.0
-          st.session_state.active_tasks[task_name_to_add] = new_task_headcount
-          st.session_state[f"cnt_{task_name_to_add}"] = int(new_task_headcount)
-
-          curr_sets = load_settings()
-          curr_sets["active_tasks"] = st.session_state.active_tasks
-          save_settings(curr_sets)
-
-          st.success(f"Added task: {task_name_to_add}")
-          st.rerun()
-
-    st.markdown("**Adjust Required Headcount:**")
-
-    tasks_to_delete = []
-
-    for task_name, count in list(st.session_state.active_tasks.items()):
-      c1, c2, c3 = st.columns([3, 1.5, 0.6])
-      c1.markdown(f"**{task_name}**")
-
-      k = f"cnt_{task_name}"
-      if k not in st.session_state:
-        st.session_state[k] = int(count)
-
-      def update_hc(t_name=task_name, key_name=k):
-        val = int(st.session_state[key_name])
-        st.session_state.active_tasks[t_name] = val
-        curr_sets = load_settings()
-        curr_sets["active_tasks"] = st.session_state.active_tasks
-        save_settings(curr_sets)
-
-      new_cnt = c2.number_input(
-          "Headcount",
-          min_value=0,
-          step=1,
-          key=k,
-          on_change=update_hc,
-          label_visibility="collapsed",
-      )
-      st.session_state.active_tasks[task_name] = int(new_cnt)
-
-      if c3.button("🗑️", key=f"del_{task_name}", type="tertiary"):
-        tasks_to_delete.append(task_name)
-
-    if tasks_to_delete:
-      for d_task in tasks_to_delete:
-        if d_task in st.session_state.active_tasks:
-          del st.session_state.active_tasks[d_task]
-        if f"cnt_{d_task}" in st.session_state:
-          del st.session_state[f"cnt_{d_task}"]
-      curr_sets = load_settings()
-      curr_sets["active_tasks"] = st.session_state.active_tasks
-      save_settings(curr_sets)
-      st.rerun()
-
-  task_requirements = {
-      t: c for t, c in st.session_state.active_tasks.items() if c > 0
-  }
-  total_requested = sum(task_requirements.values())
-
-  st.markdown("---")
-
-  # --- ALLOCATION ENGINE WITH MATCH TRACKING ---
-  available_pool = [
-      s
-      for s in st.session_state.staff_db
-      if s["name"] not in absent_staff
-      and (
-          s["category"] != "Leading Hand"
-          or s["name"] in selected_leading_hands
-      )
-  ]
-  cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
-
-  allocated_roster = {task: [] for task in task_requirements}
+allocated_roster = {task: [] for task in task_requirements}
 
 
-  def allocate_by_tier(tier_index, match_label):
-    for task_name, req_count in task_requirements.items():
-      while len(allocated_roster[task_name]) < req_count:
-        assigned_flat = [
-            m["person"] for mems in allocated_roster.values() for m in mems
-        ]
-        unassigned_pool = [p for p in available_pool if p not in assigned_flat]
-
-        candidates_for_task = []
-        for person in unassigned_pool:
-          skills = person.get("skills", [])
-          if len(skills) > tier_index and skills[tier_index] == task_name:
-            def_t = st.session_state.task_targets.get(task_name, 100.0)
-            t_perf = person.get("task_performance", {}).get(
-                task_name, {"kpi": def_t, "quality": "👍", "notes": ""}
-            )
-            kpi_score = t_perf.get("kpi", def_t)
-            qual_score = 0 if t_perf.get("quality", "👍") == "👍" else 1
-            cat_rank = cat_priority.get(person["category"], 4)
-
-            candidates_for_task.append({
-                "person": person,
-                "kpi": kpi_score,
-                "quality": qual_score,
-                "cat_rank": cat_rank,
-            })
-
-        if not candidates_for_task:
-          break
-
-        candidates_for_task.sort(
-            key=lambda x: (x["cat_rank"], -x["kpi"], x["quality"])
-        )
-        best_cand = candidates_for_task[0]
-        allocated_roster[task_name].append({
-            "person": best_cand["person"],
-            "match_type": match_label,
-        })
-
-
-  allocate_by_tier(0, "Primary")
-  allocate_by_tier(1, "Secondary")
-  allocate_by_tier(2, "Tertiary")
-
+def allocate_by_tier(tier_index, match_label):
   for task_name, req_count in task_requirements.items():
     while len(allocated_roster[task_name]) < req_count:
       assigned_flat = [
@@ -965,72 +625,104 @@ with tab_planner:
       ]
       unassigned_pool = [p for p in available_pool if p not in assigned_flat]
 
-      if not unassigned_pool:
+      candidates_for_task = []
+      for person in unassigned_pool:
+        skills = person.get("skills", [])
+        if len(skills) > tier_index and skills[tier_index] == task_name:
+          def_t = st.session_state.task_targets.get(task_name, 100.0)
+          t_perf = person.get("task_performance", {}).get(
+              task_name, {"kpi": def_t, "quality": "👍", "notes": ""}
+          )
+          kpi_score = t_perf.get("kpi", def_t)
+          qual_score = 0 if t_perf.get("quality", "👍") == "👍" else 1
+          cat_rank = cat_priority.get(person["category"], 4)
+
+          candidates_for_task.append({
+              "person": person,
+              "kpi": kpi_score,
+              "quality": qual_score,
+              "cat_rank": cat_rank,
+          })
+
+      if not candidates_for_task:
         break
 
-      unassigned_pool.sort(key=lambda x: cat_priority.get(x["category"], 4))
-      fallback_person = unassigned_pool[0]
-      allocated_roster[task_name].append(
-          {"person": fallback_person, "match_type": "No Match"}
+      candidates_for_task.sort(
+          key=lambda x: (x["cat_rank"], -x["kpi"], x["quality"])
       )
+      best_cand = candidates_for_task[0]
+      allocated_roster[task_name].append({
+          "person": best_cand["person"],
+          "match_type": match_label,
+      })
 
-  assigned_staff_flat = [
-      m["person"] for mems in allocated_roster.values() for m in mems
-  ]
-  unassigned_staff = [p for p in available_pool if p not in assigned_staff_flat]
 
+allocate_by_tier(0, "Primary")
+allocate_by_tier(1, "Secondary")
+allocate_by_tier(2, "Tertiary")
+
+for task_name, req_count in task_requirements.items():
+  while len(allocated_roster[task_name]) < req_count:
+    assigned_flat = [
+        m["person"] for mems in allocated_roster.values() for m in mems
+    ]
+    unassigned_pool = [p for p in available_pool if p not in assigned_flat]
+
+    if not unassigned_pool:
+      break
+
+    unassigned_pool.sort(key=lambda x: cat_priority.get(x["category"], 4))
+    fallback_person = unassigned_pool[0]
+    allocated_roster[task_name].append(
+        {"person": fallback_person, "match_type": "No Match"}
+    )
+
+assigned_staff_flat = [
+    m["person"] for mems in allocated_roster.values() for m in mems
+]
+unassigned_staff = [p for p in available_pool if p not in assigned_staff_flat]
+
+
+# --- 6 TABS RESTRUCTURED ---
+(
+    tab_copy_lists,
+    tab_planner,
+    tab_smart_calc,
+    tab_old_calc,
+    tab_kpi,
+    tab_progress,
+) = st.tabs([
+    "📱 Copy Lists",
+    "📋 Roster & Allocation",
+    "📊 Smart Headcount & Shift Hours",
+    "🧮 Advanced Workload & Overtime Status",
+    "⭐ Weekly KPI Tracker",
+    "📈 Staff Progress & Skills",
+])
+
+# ==========================================
+# TAB 1: COPY-PASTE READY LISTS (FIRST TAB)
+# ==========================================
+with tab_copy_lists:
+  st.subheader("📱 Copy-Paste Ready Lists")
   st.markdown(
-      "**Skill Match Color Legend:** "
-      "🟢 <span style='color:green; font-weight:600;'>Primary Skill</span>"
-      " &nbsp;&nbsp;|&nbsp;&nbsp; "
-      "🟡 <span style='color:#b8860b; font-weight:600;'>Secondary Skill</span>"
-      " &nbsp;&nbsp;|&nbsp;&nbsp; "
-      "⚫ <span style='color:black; font-weight:600;'>Tertiary Skill</span>"
-      " &nbsp;&nbsp;|&nbsp;&nbsp; "
-      "🔴 <span style='color:red; font-weight:600;'>No Matching Skillset</span>",
-      unsafe_allow_html=True,
+      f"**Total Staff Required:** `{total_requested}` workers across"
+      f" `{len(task_requirements)}` tasks."
   )
   st.markdown("---")
 
-  col1, col2 = st.columns([1, 1.2])
+  c_copy1, c_copy2 = st.columns(2)
 
-  with col1:
-    st.markdown(
-        f"### 📊 Labor Allocation Plan (Total Requested: {total_requested}"
-        " Staff)"
-    )
-    for task, entries in allocated_roster.items():
-      req_c = task_requirements[task]
-      st.markdown(f"**{task} ({len(entries)} / {req_c})**")
-      for item in entries:
-        m = item["person"]
-        m_type = item["match_type"]
-
-        if m_type == "Primary":
-          icon_badge = "🟢"
-        elif m_type == "Secondary":
-          icon_badge = "🟡"
-        elif m_type == "Tertiary":
-          icon_badge = "⚫"
-        else:
-          icon_badge = "🔴"
-
-        t_note = (
-            m.get("task_performance", {}).get(task, {}).get("notes", "")
-        )
-        note_str = f" (*{t_note}*)" if t_note else ""
-        st.write(f"- **{m['name']}** [{m['category']}] — {icon_badge}{note_str}")
-      st.markdown("---")
-
-  with col2:
-    st.markdown("### 📱 Copy-Paste Ready Lists")
-
+  with c_copy1:
+    st.markdown("**1. Grouped by Task Heading:**")
     task_text_output = "GH3 - WEEKLY LABOR PLAN (BY TASK)\n"
     task_text_output += f"Total Staff Required: {total_requested}\n"
     task_text_output += "-----------------------------------\n\n"
 
     for task, entries in allocated_roster.items():
-      task_text_output += f"*{task.upper()} ({len(entries)}/{task_requirements[task]})*\n"
+      task_text_output += (
+          f"*{task.upper()} ({len(entries)}/{task_requirements[task]})*\n"
+      )
       for idx, item in enumerate(entries, 1):
         m = item["person"]
         t_note = (
@@ -1045,9 +737,10 @@ with tab_planner:
       for u in unassigned_staff:
         task_text_output += f"- {u['name']} ({u['category']})\n"
 
-    st.markdown("**1. Grouped by Task Heading:**")
     st.code(task_text_output, language="text")
 
+  with c_copy2:
+    st.markdown("**2. Grouped by Employee Category:**")
     category_map = {"GG": [], "Leading Hand": [], "TOTC": [], "Urson": []}
 
     for task, entries in allocated_roster.items():
@@ -1085,79 +778,332 @@ with tab_planner:
       for u in unassigned_staff:
         cat_text_output += f"- {u['name']} ({u['category']})\n"
 
-    st.markdown("**2. Grouped by Employee Category:**")
     st.code(cat_text_output, language="text")
+
+
+# ==========================================
+# TAB 2: ROSTER PLANNER & STAFF CONTROLS
+# ==========================================
+with tab_planner:
+  st.sidebar.header("⚙️ Roster Controls")
+
+  with st.sidebar.expander("➕ Add Staff"):
+    with st.form("add_staff_form", clear_on_submit=True):
+      new_name = st.text_input("Name")
+      new_cat = st.selectbox(
+          "Category", ["GG", "TOTC", "Urson", "Leading Hand"]
+      )
+
+      opts = st.session_state.skills_list
+      skill1 = st.selectbox("Primary Skill", opts)
+      skill2 = st.selectbox("Secondary Skill", ["None"] + opts)
+      skill3 = st.selectbox("Tertiary Skill", ["None"] + opts)
+
+      submit_add = st.form_submit_button("Add Staff")
+      if submit_add and new_name.strip():
+        skills_arr = [skill1]
+        if skill2 != "None":
+          skills_arr.append(skill2)
+        if skill3 != "None":
+          skills_arr.append(skill3)
+
+        t_perf = {}
+        for sk in skills_arr:
+          def_t = st.session_state.task_targets.get(sk, 100.0)
+          t_perf[sk] = {"kpi": def_t, "quality": "👍", "notes": ""}
+
+        st.session_state.staff_db.append({
+            "name": new_name.strip(),
+            "category": new_cat,
+            "skills": skills_arr,
+            "task_performance": t_perf,
+        })
+        save_staff_data(st.session_state.staff_db)
+        st.sidebar.success(f"Added {new_name}!")
+        st.rerun()
+
+  with st.sidebar.expander("🎓 Update Skills", expanded=False):
+    staff_names = [s["name"] for s in st.session_state.staff_db]
+    selected_member_name = st.selectbox(
+        "Select Member", options=[""] + staff_names, key="skill_select_member"
+    )
+
+    if selected_member_name:
+      person = next(
+          (
+              s
+              for s in st.session_state.staff_db
+              if s["name"] == selected_member_name
+          ),
+          None,
+      )
+      if person:
+        curr_skills = person.get("skills", [])
+        opts = st.session_state.skills_list
+        p_skill = (
+            curr_skills[0]
+            if len(curr_skills) > 0 and curr_skills[0] in opts
+            else opts[0]
+        )
+        s_skill = (
+            curr_skills[1]
+            if len(curr_skills) > 1 and curr_skills[1] in opts
+            else "None"
+        )
+        t_skill = (
+            curr_skills[2]
+            if len(curr_skills) > 2 and curr_skills[2] in opts
+            else "None"
+        )
+
+        with st.form(key=f"update_skills_form_{selected_member_name}"):
+          up_skill1 = st.selectbox(
+              "Primary", opts, index=opts.index(p_skill)
+          )
+          up_skill2 = st.selectbox(
+              "Secondary",
+              ["None"] + opts,
+              index=(["None"] + opts).index(s_skill),
+          )
+          up_skill3 = st.selectbox(
+              "Tertiary", ["None"] + opts, index=(["None"] + opts).index(t_skill)
+          )
+
+          submit_update = st.form_submit_button("Save Skills")
+          if submit_update:
+            new_s_arr = [up_skill1]
+            if up_skill2 != "None":
+              new_s_arr.append(up_skill2)
+            if up_skill3 != "None":
+              new_s_arr.append(up_skill3)
+            person["skills"] = new_s_arr
+            if "task_performance" not in person:
+              person["task_performance"] = {}
+            for sk in new_s_arr:
+              if sk not in person["task_performance"]:
+                def_t = st.session_state.task_targets.get(sk, 100.0)
+                person["task_performance"][sk] = {
+                    "kpi": def_t,
+                    "quality": "👍",
+                    "notes": "",
+                }
+            save_staff_data(st.session_state.staff_db)
+            st.sidebar.success("Updated!")
+            st.rerun()
+
+  with st.sidebar.expander("🎯 Target KPIs"):
+    updated_targets = {}
+    for s in st.session_state.skills_list:
+      current_target = st.session_state.task_targets.get(s, 100.0)
+      t_val = st.number_input(
+          f"{s}",
+          min_value=0.0,
+          value=float(current_target),
+          step=1.0,
+          key=f"target_kpi_{s}",
+      )
+      updated_targets[s] = t_val
+    st.session_state.task_targets = updated_targets
+    curr_settings = load_settings()
+    curr_settings["task_targets"] = updated_targets
+    save_settings(curr_settings)
+
+  with st.sidebar.expander("🗑️ Remove Staff"):
+    staff_names = [s["name"] for s in st.session_state.staff_db]
+    to_remove = st.selectbox("Select Staff", options=[""] + staff_names)
+    if st.button("Delete", type="primary"):
+      if to_remove:
+        st.session_state.staff_db = [
+            s for s in st.session_state.staff_db if s["name"] != to_remove
+        ]
+        save_staff_data(st.session_state.staff_db)
+        st.sidebar.warning(f"Removed {to_remove}")
+        st.rerun()
+
+  with st.sidebar.expander("💾 Backup DB"):
+    json_data = json.dumps(st.session_state.staff_db, indent=4)
+    st.download_button(
+        label="📥 Download JSON",
+        data=json_data,
+        file_name="staff_db_backup.json",
+        mime="application/json",
+    )
+
+  st.sidebar.markdown("---")
+
+  col_ctrl1, col_ctrl2 = st.columns([1, 1.2])
+
+  with col_ctrl1:
+    st.subheader("1. Availability Check")
+    all_names = [s["name"] for s in st.session_state.staff_db]
+    absent_staff = st.multiselect(
+        "Absent / Leave:", options=all_names, key="absent_staff_input"
+    )
+
+    leading_hands_db = [
+        s for s in st.session_state.staff_db if s["category"] == "Leading Hand"
+    ]
+    lh_names = [lh["name"] for lh in leading_hands_db]
+    st.markdown("---")
+    st.subheader("⭐ Leading Hands")
+
+    if "selected_leading_hands_filter" not in st.session_state:
+      st.session_state["selected_leading_hands_filter"] = lh_names
+
+    selected_leading_hands = st.multiselect(
+        "Active Leading Hands:",
+        options=lh_names,
+        key="selected_leading_hands_filter",
+    )
+
+  with col_ctrl2:
+    st.subheader("2. Task Headcounts")
+
+    with st.expander("➕ Add Task Heading", expanded=False):
+      task_add_options = st.session_state.skills_list + ["➕ Custom Task"]
+      chosen_task_opt = st.selectbox("Task Name", task_add_options)
+      task_name_to_add = chosen_task_opt
+      if chosen_task_opt == "➕ Custom Task":
+        custom_t_input = st.text_input("Type Name")
+        if custom_t_input.strip():
+          task_name_to_add = custom_t_input.strip()
+
+      new_task_headcount = st.number_input("Headcount", min_value=1, value=4)
+      if st.button("Add Task", type="primary"):
+        if task_name_to_add and task_name_to_add != "➕ Custom Task":
+          if task_name_to_add not in st.session_state.skills_list:
+            st.session_state.skills_list.append(task_name_to_add)
+            st.session_state.task_targets[task_name_to_add] = 100.0
+          st.session_state.active_tasks[task_name_to_add] = new_task_headcount
+          st.session_state[f"cnt_{task_name_to_add}"] = int(new_task_headcount)
+          curr_sets = load_settings()
+          curr_sets["active_tasks"] = st.session_state.active_tasks
+          save_settings(curr_sets)
+          st.rerun()
+
+    st.markdown("**Adjust Headcounts:**")
+    tasks_to_delete = []
+    for task_name, count in list(st.session_state.active_tasks.items()):
+      c_t1, c_t2, c_t3 = st.columns([3, 1.5, 0.6])
+      c_t1.markdown(f"**{task_name}**")
+      k = f"cnt_{task_name}"
+      if k not in st.session_state:
+        st.session_state[k] = int(count)
+
+      def update_hc(t_name=task_name, key_name=k):
+        val = int(st.session_state[key_name])
+        st.session_state.active_tasks[t_name] = val
+        curr_sets = load_settings()
+        curr_sets["active_tasks"] = st.session_state.active_tasks
+        save_settings(curr_sets)
+
+      new_cnt = c_t2.number_input(
+          "HC",
+          min_value=0,
+          step=1,
+          key=k,
+          on_change=update_hc,
+          label_visibility="collapsed",
+      )
+      st.session_state.active_tasks[task_name] = int(new_cnt)
+
+      if c_t3.button("🗑️", key=f"del_{task_name}", type="tertiary"):
+        tasks_to_delete.append(task_name)
+
+    if tasks_to_delete:
+      for d_task in tasks_to_delete:
+        if d_task in st.session_state.active_tasks:
+          del st.session_state.active_tasks[d_task]
+        if f"cnt_{d_task}" in st.session_state:
+          del st.session_state[f"cnt_{d_task}"]
+      curr_sets = load_settings()
+      curr_sets["active_tasks"] = st.session_state.active_tasks
+      save_settings(curr_sets)
+      st.rerun()
+
+  st.markdown("---")
+  st.markdown(
+      "**Skill Match Legend:** 🟢 `Primary` | 🟡 `Secondary` | ⚫ `Tertiary` |"
+      " 🔴 `No Match`"
+  )
+  st.markdown("---")
+
+  st.markdown(f"### 📊 Visual Labor Allocation Plan ({total_requested} Staff)")
+  for task, entries in allocated_roster.items():
+    req_c = task_requirements[task]
+    st.markdown(f"**{task} ({len(entries)} / {req_c})**")
+    for item in entries:
+      m = item["person"]
+      m_type = item["match_type"]
+      icon_badge = (
+          "🟢"
+          if m_type == "Primary"
+          else ("🟡" if m_type == "Secondary" else ("⚫" if m_type == "Tertiary" else "🔴"))
+      )
+      t_note = m.get("task_performance", {}).get(task, {}).get("notes", "")
+      note_str = f" (*{t_note}*)" if t_note else ""
+      st.write(f"- **{m['name']}** [{m['category']}] — {icon_badge}{note_str}")
+    st.markdown("---")
 
   if unassigned_staff:
     st.warning(
-        f"⚠️ **{len(unassigned_staff)} Available Staff Not Allocated:** "
+        f"⚠️ **{len(unassigned_staff)} Unassigned Staff:** "
         + ", ".join([u["name"] for u in unassigned_staff])
     )
 
 
 # ==========================================
-# TAB 2: SMART HEADCOUNT & SHIFT HOURS (Area = 5 ha fixed, Rows = 260 fixed)
+# TAB 3: SMART HEADCOUNT & SHIFT HOURS
 # ==========================================
 with tab_smart_calc:
-  st.subheader("📊 Smart Headcount & Shift Hours Calculator")
+  st.subheader("📊 Smart Headcount & Shift Hours")
   st.markdown(
-      "Glasshouse Area is fixed at **5.0 ha (50,000 m²)** and Total Rows is"
-      " fixed at **260**. Adjust Plant Density below."
+      "Area is fixed at **5.0 ha (50,000 m²)** and Rows at **260**. Adjust"
+      " **Plant Density per Row** below."
   )
 
   c_dim1, c_dim2, c_dim3 = st.columns(3)
   with c_dim1:
     st.markdown(
-        "**Glasshouse Area (Constant)**<br><h3"
+        "**Area (Constant)**<br><h3"
         " style='margin:0;color:#2D6A4F;'>5.0 ha</h3><small"
-        " style='color:gray;'>50,000.0 m²</small>",
+        " style='color:gray;'>50,000 m²</small>",
         unsafe_allow_html=True,
     )
   with c_dim2:
     st.markdown(
-        "**Master Total Rows (Constant)**<br><h3"
+        "**Rows (Constant)**<br><h3"
         " style='margin:0;color:#2D6A4F;'>260 rows</h3>",
         unsafe_allow_html=True,
     )
   with c_dim3:
-    st.session_state.calc_plants_per_sqm = st.number_input(
-        "Plant Density (plants / m²)",
-        min_value=0.1,
-        value=float(st.session_state.calc_plants_per_sqm),
-        step=0.1,
-        format="%.2f",
-        key="smart_sqm_input",
+    st.session_state.calc_plants_per_row = st.number_input(
+        "Plant Density per Row",
+        min_value=1.0,
+        value=float(st.session_state.calc_plants_per_row),
+        step=10.0,
+        key="smart_ppr_input",
     )
 
-  gh_area_sqm = 50000.0
-  total_gh_plants = gh_area_sqm * st.session_state.calc_plants_per_sqm
-  st.session_state.calc_rows = 260
-  st.session_state.calc_plants_per_row = total_gh_plants / 260
+  total_gh_plants = 260 * st.session_state.calc_plants_per_row
+  plant_density_sqm = total_gh_plants / 50000.0
 
   st.info(
-      f"🌱 **Total Glasshouse Plant Count:** **{total_gh_plants:,.0f}"
-      f" plants** (50,000 m² × {st.session_state.calc_plants_per_sqm:.2f}"
-      f" plants/m²) &nbsp;|&nbsp; 🌿 **Plant Density per Row:**"
-      f" **{st.session_state.calc_plants_per_row:,.1f} plants/row** (260 rows)"
+      f"🌱 **Total Plants:** **{total_gh_plants:,.0f} plants** (260 rows ×"
+      f" {st.session_state.calc_plants_per_row:,.1f} plants/row) &nbsp;|&nbsp;"
+      f" 📐 **Density:** **{plant_density_sqm:,.2f} plants/m²**"
   )
 
   st.markdown("---")
-
   gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
   active_tasks_list = list(st.session_state.active_tasks.keys())
 
-  # ==========================================
-  # SECTION 1: STAFF NUMBER RECOMMENDATIONS (AVERAGE KPI)
-  # ==========================================
-  st.markdown(
-      "### 📈 Staff Number Recommendations (Based on Average KPI)"
-  )
-
+  st.markdown("### 📈 Staff Recommendations (Average KPI)")
   ash1, ash2, ash3, ash4 = st.columns([2, 1.2, 1.5, 1.5])
-  ash1.markdown("**Task Name**")
-  ash2.markdown("**Average KPI / Count**")
-  ash3.markdown("**Exact Headcount**")
-  ash4.markdown("**Rec. Headcount (Ceiling)**")
+  ash1.markdown("**Task**")
+  ash2.markdown("**Avg KPI**")
+  ash3.markdown("**Exact HC**")
+  ash4.markdown("**Rec. HC**")
   st.markdown("---")
 
   avg_kpi_calc_results = {}
@@ -1199,12 +1145,8 @@ with tab_smart_calc:
       mh = current_val * gh_crop_work_hrs_per_week
       exact_hc = current_val
       rec_hc = int(current_val)
-      asc3.markdown(f"`{exact_hc:.2f} workers`")
-      asc4.markdown(
-          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{rec_hc} workers</span>",
-          unsafe_allow_html=True,
-      )
+      asc3.markdown(f"`{exact_hc:.2f}`")
+      asc4.markdown(f"**{rec_hc}**")
     else:
       avg_input_key = f"smart_avg_kpi_{task_name}"
       if avg_input_key not in st.session_state:
@@ -1226,7 +1168,7 @@ with tab_smart_calc:
 
 
       avg_kpi_val = asc2.number_input(
-          f"Avg KPI {task_name}",
+          f"KPI {task_name}",
           min_value=1.0,
           value=float(st.session_state[avg_input_key]),
           step=10.0,
@@ -1243,13 +1185,8 @@ with tab_smart_calc:
           else 0
       )
       rec_hc = math.ceil(exact_hc)
-
-      asc3.markdown(f"`{exact_hc:.2f} workers`")
-      asc4.markdown(
-          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{rec_hc} workers</span>",
-          unsafe_allow_html=True,
-      )
+      asc3.markdown(f"`{exact_hc:.2f}`")
+      asc4.markdown(f"**{rec_hc}**")
 
     avg_kpi_calc_results[task_name] = {
         "exact": exact_hc,
@@ -1259,228 +1196,52 @@ with tab_smart_calc:
     total_avg_rec_hc += rec_hc
     total_avg_mh += mh
 
-  # --- LOCAL POLLINATION TASK (AVERAGE KPI) ---
+  # Pollination
   asc1_p, asc2_p, asc3_p, asc4_p = st.columns([2, 1.2, 1.5, 1.5])
   asc1_p.markdown("**Pollination**")
-  asc2_p.markdown("`2500.0 (Fixed)`")
+  asc2_p.markdown("`2500 (Fixed)`")
   poll_avg_hc = max(0, 12 - clip_shoot_avg_rec)
   poll_avg_mh = total_gh_plants / 2500.0
-  asc3_p.markdown(f"`{float(poll_avg_hc):.2f} workers`")
-  asc4_p.markdown(
-      f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-      f" 1.1rem;'>{poll_avg_hc} workers</span>",
-      unsafe_allow_html=True,
-  )
+  asc3_p.markdown(f"`{float(poll_avg_hc):.2f}`")
+  asc4_p.markdown(f"**{poll_avg_hc}**")
   total_avg_rec_hc += poll_avg_hc
   total_avg_mh += poll_avg_mh
 
   total_avg_hours = total_avg_rec_hc * 7.6 * 5
-
   st.markdown(
       f"""
-        <div style="background: rgba(45,106,79,0.08); padding: 12px 18px; border-radius: 10px; border: 1px solid #C5DACB; margin-top: 10px; margin-bottom: 20px;">
-            <p style="margin: 0; font-size: 1.05rem; color: #1B4332;">
-                <b>Average KPI Section Total:</b> 
-                <span style="font-weight: bold; color: #2D6A4F;">{total_avg_rec_hc} Workers Recommended</span> &nbsp;|&nbsp; 
-                Total Man-Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_avg_mh:,.1f} Man-Hrs</span> &nbsp;|&nbsp; 
-                Total Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_avg_hours:,.1f} Hrs</span>
+        <div style="background: rgba(45,106,79,0.08); padding: 10px 14px; border-radius: 8px; border: 1px solid #C5DACB; margin-top: 8px; margin-bottom: 15px;">
+            <p style="margin: 0; font-size: 0.95rem; color: #1B4332;">
+                <b>Total:</b> <b>{total_avg_rec_hc} Workers</b> | <b>{total_avg_mh:,.1f} Man-Hrs</b> | <b>{total_avg_hours:,.1f} Hrs</b>
             </p>
         </div>
         """,
       unsafe_allow_html=True,
   )
 
-  st.markdown("---")
-
-  # ==========================================
-  # SECTION 2: STAFF NUMBER RECOMMENDATIONS (TARGET KPI)
-  # ==========================================
-  st.markdown(
-      "### 🎯 Staff Number Recommendations (Based on Target KPI)"
-  )
-
-  sh1, sh2, sh3, sh4 = st.columns([2, 1.2, 1.5, 1.5])
-  sh1.markdown("**Task Name**")
-  sh2.markdown("**Target KPI / Count**")
-  sh3.markdown("**Exact Headcount**")
-  sh4.markdown("**Rec. Headcount (Ceiling)**")
-  st.markdown("---")
-
-  target_kpi_calc_results = {}
-  total_target_rec_hc = 0
-  total_target_mh = 0.0
-
-  clip_shoot_target_rec = 0
-  for task_name in active_tasks_list:
-    if task_name == "Clip/Shoot & Pollination":
-      default_target = float(
-          st.session_state.task_targets.get(task_name, 100.0)
-      )
-      mh = total_gh_plants / default_target if default_target > 0 else 0
-      exact_hc = (
-          mh / gh_crop_work_hrs_per_week
-          if gh_crop_work_hrs_per_week > 0
-          else 0
-      )
-      clip_shoot_target_rec = math.ceil(exact_hc)
-      break
-
-  for task_name in active_tasks_list:
-    sc1, sc2, sc3, sc4 = st.columns([2, 1.2, 1.5, 1.5])
-    sc1.markdown(f"**{task_name}**")
-
-    if task_name == "Leading Hand":
-      current_lh_count = float(st.session_state.active_tasks[task_name])
-      lh_input = sc2.number_input(
-          "LH Count",
-          min_value=1.0,
-          value=current_lh_count,
-          step=1.0,
-          key=f"smart_kpi_{task_name}",
-          label_visibility="collapsed",
-      )
-      mh = lh_input * gh_crop_work_hrs_per_week
-      exact_hc = lh_input
-      rec_hc = int(lh_input)
-      target_kpi_calc_results[task_name] = {
-          "exact": exact_hc,
-          "recommended": rec_hc,
-          "man_hours": mh,
-      }
-      sc3.markdown(f"`{lh_input:.2f} workers`")
-      sc4.markdown(
-          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{rec_hc} workers</span>",
-          unsafe_allow_html=True,
-      )
-    elif task_name == "Others":
-      current_other_count = float(st.session_state.active_tasks[task_name])
-      other_input = sc2.number_input(
-          "People Count",
-          min_value=0.0,
-          value=current_other_count,
-          step=1.0,
-          key=f"smart_kpi_{task_name}",
-          label_visibility="collapsed",
-      )
-      mh = other_input * gh_crop_work_hrs_per_week
-      exact_hc = other_input
-      rec_hc = int(other_input)
-      target_kpi_calc_results[task_name] = {
-          "exact": exact_hc,
-          "recommended": rec_hc,
-          "man_hours": mh,
-      }
-      sc3.markdown(f"`{other_input:.2f} workers`")
-      sc4.markdown(
-          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{rec_hc} workers</span>",
-          unsafe_allow_html=True,
-      )
-    else:
-      default_target = float(
-          st.session_state.task_targets.get(task_name, 100.0)
-      )
-      target_kpi_input = sc2.number_input(
-          "Target KPI",
-          min_value=1.0,
-          value=default_target,
-          step=10.0,
-          key=f"smart_target_kpi_{task_name}",
-          label_visibility="collapsed",
-      )
-      st.session_state.task_targets[task_name] = target_kpi_input
-
-      mh = total_gh_plants / target_kpi_input if target_kpi_input > 0 else 0
-      exact_hc = (
-          mh / gh_crop_work_hrs_per_week
-          if gh_crop_work_hrs_per_week > 0
-          else 0
-      )
-      rec_hc = math.ceil(exact_hc)
-
-      sc3.markdown(f"`{exact_hc:.2f} workers`")
-      sc4.markdown(
-          f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-          f" 1.1rem;'>{rec_hc} workers</span>",
-          unsafe_allow_html=True,
-      )
-
-      target_kpi_calc_results[task_name] = {
-          "exact": exact_hc,
-          "recommended": rec_hc,
-          "man_hours": mh,
-      }
-
-    total_target_rec_hc += rec_hc
-    total_target_mh += mh
-
-  # --- LOCAL POLLINATION TASK (TARGET KPI) ---
-  sc1_p, sc2_p, sc3_p, sc4_p = st.columns([2, 1.2, 1.5, 1.5])
-  sc1_p.markdown("**Pollination**")
-  sc2_p.markdown("`2500.0 (Fixed)`")
-  poll_target_hc = max(0, 12 - clip_shoot_target_rec)
-  poll_target_mh = total_gh_plants / 2500.0
-  sc3_p.markdown(f"`{float(poll_target_hc):.2f} workers`")
-  sc4_p.markdown(
-      f"<span style='color: #2D6A4F; font-weight: bold; font-size:"
-      f" 1.1rem;'>{poll_target_hc} workers</span>",
-      unsafe_allow_html=True,
-  )
-  total_target_rec_hc += poll_target_hc
-  total_target_mh += poll_target_mh
-
-  total_target_hours = total_target_rec_hc * 7.6 * 5
-
-  st.markdown(
-      f"""
-        <div style="background: rgba(45,106,79,0.08); padding: 12px 18px; border-radius: 10px; border: 1px solid #C5DACB; margin-top: 10px; margin-bottom: 20px;">
-            <p style="margin: 0; font-size: 1.05rem; color: #1B4332;">
-                <b>Target KPI Section Total:</b> 
-                <span style="font-weight: bold; color: #2D6A4F;">{total_target_rec_hc} Workers Recommended</span> &nbsp;|&nbsp; 
-                Total Man-Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_target_mh:,.1f} Man-Hrs</span> &nbsp;|&nbsp; 
-                Total Hours: <span style="font-weight: bold; color: #2D6A4F;">{total_target_hours:,.1f} Hrs</span>
-            </p>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
-
-  st.markdown("---")
-
-  if st.button(
-      "🔄 Sync Average KPI Headcounts to Weekly Roster Planner (Tab 1)",
-      type="primary",
-  ):
+  if st.button("🔄 Sync Average KPI Headcounts to Tab 2", type="primary"):
     for task_name, res in avg_kpi_calc_results.items():
-      if task_name == "Clip/Shoot & Pollination":
-        rec_val = 12
-      else:
-        rec_val = int(res["recommended"])
+      rec_val = 12 if task_name == "Clip/Shoot & Pollination" else int(res["recommended"])
       st.session_state.active_tasks[task_name] = rec_val
       if f"cnt_{task_name}" in st.session_state:
         del st.session_state[f"cnt_{task_name}"]
-
     curr_sets = load_settings()
     curr_sets["active_tasks"] = st.session_state.active_tasks
     save_settings(curr_sets)
-    st.success(
-        "Successfully populated Tab 1 headcounts with the Average KPI"
-        " recommended values (Clip/Shoot & Pollination set to 12)!"
-    )
+    st.success("Synced successfully!")
     st.rerun()
 
 
 # ==========================================
-# TAB 3: ADVANCED WORKLOAD & OVERTIME STATUS
+# TAB 4: ADVANCED WORKLOAD & OVERTIME STATUS
 # ==========================================
 with tab_old_calc:
-  st.subheader("🧮 Advanced Workload & Overtime Status")
+  st.subheader("🧮 Workload & Overtime Status")
 
   c_ctrl1, c_ctrl2 = st.columns(2)
   with c_ctrl1:
     remaining_days = st.slider(
-        "📅 Remaining Days in Week",
+        "📅 Remaining Days",
         min_value=1.0,
         max_value=5.0,
         value=5.0,
@@ -1488,74 +1249,30 @@ with tab_old_calc:
         key="old_calc_rem_days",
     )
     max_allowed_hours = remaining_days * 8.0
-
   with c_ctrl2:
     st.markdown(
-        f"**Master Setup:** `5.0 ha area` × `260 rows`"
+        f"**Setup:** `5 ha` × `260 rows` ×"
+        f" `{st.session_state.calc_plants_per_row:.1f} pl/row`"
     )
-    st.markdown(f"**Standard base limit:** `{max_allowed_hours:.1f} Hrs`")
+    st.markdown(f"**Max limit:** `{max_allowed_hours:.1f} Hrs`")
 
   st.markdown("---")
-
-  gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
-  gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
-  gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
-
+  gh_crop_work_hrs_per_week = 36.75
   total_recommended_staff = sum(
       int(count) for count in st.session_state.active_tasks.values()
   )
-  active_crop_staff_total = sum(
-      int(count)
-      for t, count in st.session_state.active_tasks.items()
-      if t != "Leading Hand"
-  )
-  leading_hand_staff_count = int(
-      st.session_state.active_tasks.get("Leading Hand", 0)
-  )
-
-  total_crop_work_hours = (
-      active_crop_staff_total + leading_hand_staff_count
-  ) * gh_crop_work_hrs_per_week
-  total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
-  total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
-
-  m1, m2, m3, m4 = st.columns(4)
-  m1.metric("Total Headcount", f"{total_recommended_staff} Workers")
-  m2.metric("Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
-  m3.metric("Paid Hours", f"{total_paid_hours:,.1f} hrs")
-  m4.metric("Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
-
-  st.markdown("---")
-
-  shared_rows = 260
-  shared_density = st.session_state.calc_plants_per_row
 
   tasks_comparison_data = []
-
   for task_name, staff_qty in st.session_state.active_tasks.items():
     if task_name in ["Leading Hand", "Others"]:
       continue
-
     target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
-
     if task_name not in st.session_state.saved_avg_kpis:
-      kpis_logged = []
-      for person in st.session_state.staff_db:
-        t_perf = person.get("task_performance", {})
-        if task_name in t_perf:
-          kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
-      default_logged_avg = (
-          sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
-      )
-      st.session_state.saved_avg_kpis[task_name] = default_logged_avg
-      curr_sets = load_settings()
-      curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
-      save_settings(curr_sets)
+      st.session_state.saved_avg_kpis[task_name] = target_kpi
 
     t_plants = total_gh_plants
     mh_target = t_plants / target_kpi if target_kpi > 0 else 0
     dur_target = mh_target / staff_qty if staff_qty > 0 else 0
-
     tasks_comparison_data.append({
         "name": task_name,
         "plants": t_plants,
@@ -1565,15 +1282,6 @@ with tab_old_calc:
         "dur_target": dur_target,
     })
 
-  st.markdown("### 📋 Task Breakdowns & Overtime Summary")
-
-  st.markdown(
-      """
-        <div style="background-color: #FFFFFF; padding: 16px 20px; border-radius: 14px; border: 1px solid #D5E3D8; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 15px;">
-        """,
-      unsafe_allow_html=True,
-  )
-
   total_combined_avg_hours = 0.0
   active_support_tasks = [
       t
@@ -1581,11 +1289,12 @@ with tab_old_calc:
       if t in st.session_state.active_tasks
       and int(st.session_state.active_tasks[t]) > 0
   ]
-  total_rows_count = len(tasks_comparison_data) + len(active_support_tasks)
-  current_row_idx = 0
 
+  st.markdown(
+      '<div style="background-color: #FFFFFF; padding: 12px; border-radius: 10px; border: 1px solid #D5E3D8;">',
+      unsafe_allow_html=True,
+  )
   for task in tasks_comparison_data:
-    current_row_idx += 1
     input_key = f"unified_avg_kpi_{task['name']}"
     if input_key not in st.session_state:
       st.session_state[input_key] = float(
@@ -1600,27 +1309,17 @@ with tab_old_calc:
       save_settings(curr_sets)
 
     is_clip_shoot = "clip/shoot" in task["name"].lower()
-    is_shared = "lowering" in task["name"].lower()
-
-    if is_clip_shoot:
-      limit_ref = max_allowed_hours - ((9.0 / 5.0) * remaining_days)
-      limit_label = f"Max {limit_ref:.1f}h (Minus Poll.)"
-    elif is_shared:
-      limit_ref = 20.0
-      limit_label = "Max 20.0h (Shared)"
-    else:
-      limit_ref = max_allowed_hours
-      limit_label = f"Max {limit_ref:.1f}h"
-
-    c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
-        [2.2, 1.0, 1.3, 1.5, 1.8]
+    limit_ref = (
+        max_allowed_hours - ((9.0 / 5.0) * remaining_days)
+        if is_clip_shoot
+        else max_allowed_hours
     )
 
-    c_name.markdown(f"**{task['name']}**")
-    c_staff.markdown(f"👥 `{task['staff']} Staff`")
-
-    avg_kpi_val = c_kpi.number_input(
-        f"KPI {task['name']}",
+    c_n, c_s, c_k, c_h, c_st = st.columns([2.2, 1.0, 1.2, 1.4, 1.6])
+    c_n.markdown(f"**{task['name']}**")
+    c_s.markdown(f"`{task['staff']} S`")
+    avg_kpi_val = c_k.number_input(
+        "KPI",
         min_value=1.0,
         value=float(st.session_state[input_key]),
         step=10.0,
@@ -1634,87 +1333,51 @@ with tab_old_calc:
     dur_avg = mh_avg / task["staff"] if task["staff"] > 0 else 0
     total_combined_avg_hours += mh_avg
 
-    c_hrs.markdown(
-        f"`{mh_avg:.1f} Man-Hrs` <br><small"
-        f" style='color:gray;'>({dur_avg:.1f}h/worker)</small>",
-        unsafe_allow_html=True,
-    )
-
+    c_h.markdown(f"`{mh_avg:.1f}h` (`{dur_avg:.1f}h/w`)")
     if dur_avg > limit_ref:
-      c_status.markdown(
-          f"<span style='color: #D32F2F; font-weight:600;'>⚠️ Exceeds"
-          f" ({limit_label})</span>",
+      c_st.markdown(
+          "<span style='color: #D32F2F;'>⚠️ Exceeds</span>",
           unsafe_allow_html=True,
       )
     else:
-      buffer_h = limit_ref - dur_avg
-      c_status.markdown(
-          f"<span style='color: #1E7E34; font-weight:600;'>✅ On Track"
-          f" ({buffer_h:.1f}h buf)</span>",
+      c_st.markdown(
+          "<span style='color: #1E7E34;'>✅ On Track</span>",
           unsafe_allow_html=True,
       )
-
-    if current_row_idx < total_rows_count:
-      st.markdown(
-          "<hr style='margin: 8px 0; border: 0; border-top: 1px solid"
-          " #EAEFEA;'>",
-          unsafe_allow_html=True,
-      )
+    st.markdown(
+        "<hr style='margin: 4px 0; border:0; border-top:1px solid"
+        " #EAEFEA;'>",
+        unsafe_allow_html=True,
+    )
 
   for task_name in active_support_tasks:
-    current_row_idx += 1
     staff_qty = int(st.session_state.active_tasks[task_name])
     hours_per_worker = remaining_days * (gh_crop_work_hrs_per_week / 5.0)
     total_task_mh = staff_qty * hours_per_worker
     total_combined_avg_hours += total_task_mh
 
-    c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
-        [2.2, 1.0, 1.3, 1.5, 1.8]
+    c_n, c_s, c_k, c_h, c_st = st.columns([2.2, 1.0, 1.2, 1.4, 1.6])
+    c_n.markdown(f"**{task_name}**")
+    c_s.markdown(f"`{staff_qty} S`")
+    c_k.markdown("<small>Fixed</small>", unsafe_allow_html=True)
+    c_h.markdown(f"`{total_task_mh:.1f}h`")
+    c_st.markdown(
+        "<span style='color: #1E7E34;'>✅ Sched</span>", unsafe_allow_html=True
     )
-    c_name.markdown(f"**{task_name}**")
-    c_staff.markdown(f"👥 `{staff_qty} Staff`")
-    c_kpi.markdown(
-        "<small style='color:gray;'>Fixed Role</small>",
+    st.markdown(
+        "<hr style='margin: 4px 0; border:0; border-top:1px solid"
+        " #EAEFEA;'>",
         unsafe_allow_html=True,
     )
-    c_hrs.markdown(
-        f"`{total_task_mh:.1f} Man-Hrs` <br><small"
-        f" style='color:gray;'>({hours_per_worker:.1f}h/worker)</small>",
-        unsafe_allow_html=True,
-    )
-    c_status.markdown(
-        "<span style='color: #1E7E34; font-weight:600;'>✅ Scheduled</span>",
-        unsafe_allow_html=True,
-    )
-
-    if current_row_idx < total_rows_count:
-      st.markdown(
-          "<hr style='margin: 8px 0; border: 0; border-top: 1px solid"
-          " #EAEFEA;'>",
-          unsafe_allow_html=True,
-      )
 
   st.markdown("</div>", unsafe_allow_html=True)
 
   coffee_break_hours = total_recommended_staff * 0.25 * remaining_days
   final_grand_total = total_combined_avg_hours + coffee_break_hours
-
   st.markdown(
       f"""
-        <div style="background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%); padding: 15px 20px; border-radius: 12px; color: #FFFFFF; box-shadow: 0 4px 12px rgba(27,47,33,0.1); margin-top: 15px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <h4 style="margin: 0 0 4px 0; color: #FFFFFF; font-size: 1.1rem;">📊 Summary Totals</h4>
-                    <p style="margin: 0; font-size: 0.95rem; color: #E8F0EA;">
-                        Regular Tasks + Support Roles: <b>{total_combined_avg_hours:,.1f} Man-Hrs</b> &nbsp;|&nbsp; 
-                        Paid Coffee Breaks ({total_recommended_staff} staff × 0.25h × {remaining_days}d): <b>{coffee_break_hours:,.2f} Man-Hrs</b>
-                    </p>
-                </div>
-                <div style="text-align: right; margin-top: 5px;">
-                    <span style="font-size: 0.9rem; color: #A3E4D7; display: block;">GRAND TOTAL</span>
-                    <span style="font-size: 1.35rem; font-weight: bold; color: #FFFFFF;">{final_grand_total:,.2f} Man-Hours</span>
-                </div>
-            </div>
+        <div style="background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%); padding: 10px 14px; border-radius: 10px; color: #FFFFFF; margin-top: 10px;">
+            <b>Grand Total:</b> {final_grand_total:,.2f} Man-Hours (Includes {coffee_break_hours:.1f}h breaks)
         </div>
         """,
       unsafe_allow_html=True,
@@ -1722,30 +1385,21 @@ with tab_old_calc:
 
 
 # ==========================================
-# TAB 4: WEEKLY TASK-SPECIFIC KPI TRACKER
+# TAB 5: WEEKLY TASK-SPECIFIC KPI TRACKER
 # ==========================================
 with tab_kpi:
-  st.subheader("⭐ Weekly Task-Specific KPI & Quality Evaluation")
-  st.markdown(
-      "Set individual KPI scores and quality ratings **per task** for each team"
-      " member below."
-  )
-
+  st.subheader("⭐ Weekly KPI & Quality Evaluation")
   kpi_tasks_list = [
       t for t in st.session_state.skills_list if t != "Leading Hand"
   ]
-
   selected_task_to_eval = st.selectbox(
-      "Select Task to Evaluate / Update:",
-      options=kpi_tasks_list,
-      key="eval_task_select",
+      "Select Task:", options=kpi_tasks_list, key="eval_task_select"
   )
   target_val_for_task = st.session_state.task_targets.get(
       selected_task_to_eval, 100.0
   )
   st.info(
-      f"🎯 Current Target KPI for **{selected_task_to_eval}**:"
-      f" **{target_val_for_task}** (Adjustable in the sidebar)"
+      f"🎯 Target KPI for **{selected_task_to_eval}**: **{target_val_for_task}**"
   )
 
   relevant_staff = [
@@ -1755,35 +1409,17 @@ with tab_kpi:
   ]
 
   if not relevant_staff:
-    st.warning(
-        f"No staff currently trained in {selected_task_to_eval}. Go to sidebar"
-        " 'Update / Train Staff Skills' to assign this skill."
-    )
+    st.warning(f"No staff trained in {selected_task_to_eval}.")
   else:
     with st.form(f"kpi_form_{selected_task_to_eval}"):
-      h1, h2, h3, h4 = st.columns([1.5, 1.2, 1, 1.5])
-      h1.markdown("**Staff Name**")
-      h2.markdown(f"**KPI Score (Target: {target_val_for_task})**")
-      h3.markdown("**Quality**")
-      h4.markdown("**Task Notes / Excellence**")
-
-      st.markdown("---")
-
       form_inputs = {}
       for person in relevant_staff:
-        c1, c2, c3, c4 = st.columns([1.5, 1.2, 1, 1.5])
-
-        c1.markdown(
-            f"**{person['name']}** <br><small"
-            f" style='color:gray;'>{person['category']}</small>",
-            unsafe_allow_html=True,
-        )
-
+        c1, c2, c3, c4 = st.columns([1.5, 1.2, 0.8, 1.5])
+        c1.markdown(f"**{person['name']}**")
         p_perf = person.get("task_performance", {}).get(
             selected_task_to_eval,
             {"kpi": target_val_for_task, "quality": "👍", "notes": ""},
         )
-
         kpi_in = c2.number_input(
             "KPI",
             min_value=0.0,
@@ -1793,7 +1429,7 @@ with tab_kpi:
             label_visibility="collapsed",
         )
         qual_in = c3.selectbox(
-            "Quality",
+            "Q",
             ["👍", "👎"],
             index=0 if p_perf.get("quality", "👍") == "👍" else 1,
             key=f"qual_{person['name']}_{selected_task_to_eval}",
@@ -1804,81 +1440,49 @@ with tab_kpi:
             value=p_perf.get("notes", ""),
             key=f"note_{person['name']}_{selected_task_to_eval}",
             label_visibility="collapsed",
-            placeholder="e.g. Excellent speed",
+            placeholder="Notes",
         )
-
         form_inputs[person["name"]] = {
             "kpi": kpi_in,
             "quality": qual_in,
             "notes": note_in,
         }
 
-      submit_task_kpi = st.form_submit_button(
+      if st.form_submit_button(
           f"💾 Save Ratings for {selected_task_to_eval}", type="primary"
-      )
-      if submit_task_kpi:
+      ):
         for person in st.session_state.staff_db:
           name = person["name"]
           if name in form_inputs:
             if "task_performance" not in person:
               person["task_performance"] = {}
             person["task_performance"][selected_task_to_eval] = form_inputs[name]
-
         save_staff_data(st.session_state.staff_db)
-        st.success(
-            f"Successfully updated KPI and Quality ratings for"
-            f" {selected_task_to_eval}!"
-        )
+        st.success("Saved successfully!")
         st.rerun()
 
 
 # ==========================================
-# TAB 5: STAFF PROGRESS & SKILLS DIRECTORY
+# TAB 6: STAFF PROGRESS & SKILLS DIRECTORY
 # ==========================================
 with tab_progress:
-  st.subheader("📈 Staff Skills Directory & Progress Overview")
-  st.markdown(
-      "Comprehensive view of all team members, certified skills, and performance"
-      " records."
-  )
-
-  search_query = st.text_input("🔍 Search staff by name:", key="staff_search_progress")
+  st.subheader("📈 Staff Skills Directory")
+  search_query = st.text_input("🔍 Search staff:", key="staff_search_progress")
 
   for person in st.session_state.staff_db:
     if not search_query or search_query.lower() in person["name"].lower():
       with st.expander(
-          f"👤 **{person['name']}** — Category: `{person['category']}`"
+          f"👤 **{person['name']}** (`{person['category']}`)"
       ):
         col_p1, col_p2 = st.columns([1, 1.5])
-
         with col_p1:
-          st.markdown(
-              "##### 🛠️ Certified Skills (Primary $\rightarrow$ Secondary"
-              " $\rightarrow$ Tertiary)"
-          )
-          skills = person.get("skills", [])
-          if skills:
-            for idx, sk in enumerate(skills):
-              tier_label = (
-                  ["Primary", "Secondary", "Tertiary"][idx]
-                  if idx < 3
-                  else "Extra"
-              )
-              st.markdown(f"- ✅ **{tier_label}:** {sk}")
-          else:
-            st.markdown("_No skills assigned_")
-
+          st.markdown("##### 🛠️ Skills")
+          for idx, sk in enumerate(person.get("skills", [])):
+            st.markdown(f"- {sk}")
         with col_p2:
-          st.markdown("##### 📊 Task Progress & KPI Records")
-          task_perf = person.get("task_performance", {})
-          if task_perf:
-            for t_name, metrics in task_perf.items():
-              kpi = metrics.get("kpi", 100.0)
-              qual = metrics.get("quality", "👍")
-              notes = metrics.get("notes", "")
-              note_text = f" | _Note: {notes}_" if notes else ""
-              st.markdown(
-                  f"- **{t_name}**: KPI **{kpi}** | Quality: {qual}{note_text}"
-              )
-          else:
-            st.markdown("_No KPI records logged yet_")
+          st.markdown("##### 📊 KPI Records")
+          for t_name, metrics in person.get("task_performance", {}).items():
+            st.markdown(
+                f"- **{t_name}**: KPI **{metrics.get('kpi', 100)}** |"
+                f" {metrics.get('quality', '👍')}"
+            )
