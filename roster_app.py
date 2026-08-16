@@ -574,19 +574,28 @@ if "active_tasks" not in st.session_state:
   }
   st.session_state.active_tasks = saved_settings.get("active_tasks", default_tasks)
 
-# Calculator Session State Defaults
+# Calculator Session State Defaults (Area fixed at 5 ha = 50,000 m², Rows fixed at 260)
+if "calc_area_ha" not in st.session_state:
+  st.session_state.calc_area_ha = 5.0
 if "calc_rows" not in st.session_state:
   st.session_state.calc_rows = 260
-if "calc_plants_per_row" not in st.session_state:
-  st.session_state.calc_plants_per_row = 480
 if "calc_plants_per_sqm" not in st.session_state:
-  st.session_state.calc_plants_per_sqm = 2.6
+  st.session_state.calc_plants_per_sqm = 2.50
+
+# Compute derived values
+gh_area_sqm = st.session_state.calc_area_ha * 10000.0
+total_gh_plants = gh_area_sqm * st.session_state.calc_plants_per_sqm
+st.session_state.calc_plants_per_row = (
+    total_gh_plants / st.session_state.calc_rows
+    if st.session_state.calc_rows > 0
+    else 0
+)
 
 # Title
 st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
 
-# --- TAB ORDER (Smart Headcount & Shift Hours moved to 2nd position) ---
+# --- TAB ORDER (Smart Headcount & Shift Hours is 2nd) ---
 (
     tab_planner,
     tab_smart_calc,
@@ -1087,31 +1096,28 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: SMART HEADCOUNT & SHIFT HOURS (Moved from Tab 5 to Tab 2)
+# TAB 2: SMART HEADCOUNT & SHIFT HOURS (Area = 5 ha fixed, Rows = 260 fixed)
 # ==========================================
 with tab_smart_calc:
   st.subheader("📊 Smart Headcount & Shift Hours Calculator")
   st.markdown(
-      "Configure your master glasshouse dimensions and review required task"
-      " headcounts below."
+      "Glasshouse Area is fixed at **5.0 ha (50,000 m²)** and Total Rows is"
+      " fixed at **260**. Adjust Plant Density below."
   )
 
   c_dim1, c_dim2, c_dim3 = st.columns(3)
   with c_dim1:
-    st.session_state.calc_rows = st.number_input(
-        "Master Total Rows",
-        min_value=1,
-        value=st.session_state.calc_rows,
-        step=1,
-        key="smart_rows_input",
+    st.markdown(
+        "**Glasshouse Area (Constant)**<br><h3"
+        " style='margin:0;color:#2D6A4F;'>5.0 ha</h3><small"
+        " style='color:gray;'>50,000.0 m²</small>",
+        unsafe_allow_html=True,
     )
   with c_dim2:
-    st.session_state.calc_plants_per_row = st.number_input(
-        "Master Plant Density per Row",
-        min_value=1,
-        value=st.session_state.calc_plants_per_row,
-        step=10,
-        key="smart_ppr_input",
+    st.markdown(
+        "**Master Total Rows (Constant)**<br><h3"
+        " style='margin:0;color:#2D6A4F;'>260 rows</h3>",
+        unsafe_allow_html=True,
     )
   with c_dim3:
     st.session_state.calc_plants_per_sqm = st.number_input(
@@ -1123,19 +1129,16 @@ with tab_smart_calc:
         key="smart_sqm_input",
     )
 
-  total_gh_plants = (
-      st.session_state.calc_rows * st.session_state.calc_plants_per_row
-  )
-  gh_area_sqm = (
-      total_gh_plants / st.session_state.calc_plants_per_sqm
-      if st.session_state.calc_plants_per_sqm > 0
-      else 0
-  )
+  gh_area_sqm = 50000.0
+  total_gh_plants = gh_area_sqm * st.session_state.calc_plants_per_sqm
+  st.session_state.calc_rows = 260
+  st.session_state.calc_plants_per_row = total_gh_plants / 260
+
   st.info(
       f"🌱 **Total Glasshouse Plant Count:** **{total_gh_plants:,.0f}"
-      f" plants** ({st.session_state.calc_rows} rows ×"
-      f" {st.session_state.calc_plants_per_row} plants/row) &nbsp;|&nbsp; 📐"
-      f" **Estimated Area:** **{gh_area_sqm:,.1f} m²**"
+      f" plants** (50,000 m² × {st.session_state.calc_plants_per_sqm:.2f}"
+      f" plants/m²) &nbsp;|&nbsp; 🌿 **Plant Density per Row:**"
+      f" **{st.session_state.calc_plants_per_row:,.1f} plants/row** (260 rows)"
   )
 
   st.markdown("---")
@@ -1488,8 +1491,7 @@ with tab_old_calc:
 
   with c_ctrl2:
     st.markdown(
-        f"**Master Setup:** `{st.session_state.calc_rows} rows` ×"
-        f" `{st.session_state.calc_plants_per_row} density`"
+        f"**Master Setup:** `5.0 ha area` × `260 rows`"
     )
     st.markdown(f"**Standard base limit:** `{max_allowed_hours:.1f} Hrs`")
 
@@ -1525,7 +1527,7 @@ with tab_old_calc:
 
   st.markdown("---")
 
-  shared_rows = st.session_state.calc_rows
+  shared_rows = 260
   shared_density = st.session_state.calc_plants_per_row
 
   tasks_comparison_data = []
@@ -1550,7 +1552,7 @@ with tab_old_calc:
       curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
       save_settings(curr_sets)
 
-    t_plants = shared_rows * shared_density
+    t_plants = total_gh_plants
     mh_target = t_plants / target_kpi if target_kpi > 0 else 0
     dur_target = mh_target / staff_qty if staff_qty > 0 else 0
 
