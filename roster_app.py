@@ -1022,7 +1022,7 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (With Persistent Average KPIs)
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (Persistent Manual Average KPIs)
 # ==========================================
 with tab_old_calc:
   st.subheader("🧮 Advanced Workload & Overtime Status")
@@ -1064,21 +1064,19 @@ with tab_old_calc:
 
     target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
 
-    kpis_logged = []
-    for person in st.session_state.staff_db:
-      t_perf = person.get("task_performance", {})
-      if task_name in t_perf:
-        kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
-    default_logged_avg = (
-        sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
-    )
-
-    # Load from persistent saved dict if present
+    # Initialize persistent saved average KPI once from staff db if not present
     if task_name not in st.session_state.saved_avg_kpis:
+      kpis_logged = []
+      for person in st.session_state.staff_db:
+        t_perf = person.get("task_performance", {})
+        if task_name in t_perf:
+          kpis_logged.append(t_perf[task_name].get("kpi", 0.0))
+      default_logged_avg = (
+          sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
+      )
       st.session_state.saved_avg_kpis[task_name] = default_logged_avg
 
     t_plants = shared_rows * shared_density
-
     mh_target = t_plants / target_kpi if target_kpi > 0 else 0
     dur_target = mh_target / staff_qty if staff_qty > 0 else 0
 
@@ -1138,7 +1136,7 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
-    # --- Average KPI Card with Persistent State ---
+    # --- Average KPI Card with Strictly Saved Persistent State ---
     with tc2:
       st.markdown(
           "<p style='margin-bottom:2px; font-weight:bold; color:#1B4332;"
@@ -1146,7 +1144,6 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
-      # Callback to update persistent saved dict
       def update_avg_kpi(t_name=task["name"]):
         st.session_state.saved_avg_kpis[t_name] = st.session_state[
             f"adv_avg_kpi_input_{t_name}"
@@ -1161,6 +1158,8 @@ with tab_old_calc:
           on_change=update_avg_kpi,
           label_visibility="collapsed",
       )
+      # Ensure saved dict stays locked to current user input
+      st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_user
 
       mh_avg = task["plants"] / avg_kpi_user if avg_kpi_user > 0 else 0
       dur_avg = mh_avg / task["staff"] if task["staff"] > 0 else 0
