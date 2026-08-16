@@ -102,24 +102,14 @@ st.markdown(
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
     }
 
-    /* Task Card Standard Style for Workload Calculator */
-    .task-card-normal {
+    /* Minimalist Table Row Card */
+    .minimal-task-card {
         background-color: #FFFFFF;
-        padding: 12px 15px;
-        border-radius: 12px;
+        padding: 10px 14px;
+        border-radius: 10px;
         border: 1px solid #D5E3D8;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    }
-    
-    /* Task Card Overtime/Alert Style */
-    .task-card-alert {
-        background-color: #FFF0F2;
-        padding: 12px 15px;
-        border-radius: 12px;
-        border: 2px solid #FFC1CC;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        margin-bottom: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.02);
     }
     </style>
 """,
@@ -1100,20 +1090,15 @@ with tab_planner:
   if unassigned_staff:
     st.warning(
         f"⚠️ **{len(unassigned_staff)} Available Staff Not Allocated:** "
-        + ", ".join([u["name"] for u in unassigned_staff])
+        + ". ".join([u["name"] for u in unassigned_staff])
     )
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (MINIMALISTIC)
 # ==========================================
 with tab_old_calc:
   st.subheader("🧮 Advanced Workload & Overtime Status")
-  st.markdown(
-      f"**Active Master Inputs:** `{st.session_state.calc_rows} rows` ×"
-      f" `{st.session_state.calc_plants_per_row} density`"
-  )
-  st.markdown("---")
 
   c_ctrl1, c_ctrl2 = st.columns(2)
   with c_ctrl1:
@@ -1126,17 +1111,17 @@ with tab_old_calc:
         key="old_calc_rem_days",
     )
     max_allowed_hours = remaining_days * 8.0
-    st.markdown(f"**Standard base limit:** {max_allowed_hours:.1f} Hours / Staff")
 
   with c_ctrl2:
     st.markdown(
-        "**Active Tasks Linked from Roster:** "
-        f"{len(st.session_state.active_tasks)} tasks active"
+        f"**Master Setup:** `{st.session_state.calc_rows} rows` ×"
+        f" `{st.session_state.calc_plants_per_row} density`"
     )
+    st.markdown(f"**Standard base limit:** `{max_allowed_hours:.1f} Hrs`")
 
   st.markdown("---")
 
-  # --- GRAND TOTAL SHIFT HOURS REQUIRED METRICS BLOCK (ON TOP OF TAB 2) ---
+  # --- COMPACT METRICS BAR ---
   gh_crop_work_hrs_per_week = 7.35 * 5  # 36.75 hrs
   gh_paid_hrs_per_week = 7.5 * 5  # 37.5 hrs
   gh_onsite_hrs_per_week = 8.0 * 5  # 40.0 hrs
@@ -1159,12 +1144,11 @@ with tab_old_calc:
   total_paid_hours = total_recommended_staff * gh_paid_hrs_per_week
   total_onsite_hours = total_recommended_staff * gh_onsite_hrs_per_week
 
-  st.markdown("### 📋 Grand Total Shift Hours Required")
-  gh_res1, gh_res2, gh_res3, gh_res4 = st.columns(4)
-  gh_res1.metric("Total Recommended Headcount", f"{total_recommended_staff} Workers")
-  gh_res2.metric("Total Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
-  gh_res3.metric("Total Paid Hours", f"{total_paid_hours:,.1f} hrs")
-  gh_res4.metric("Total Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
+  m1, m2, m3, m4 = st.columns(4)
+  m1.metric("Total Headcount", f"{total_recommended_staff} Workers")
+  m2.metric("Crop Work Hours", f"{total_crop_work_hours:,.1f} hrs")
+  m3.metric("Paid Hours", f"{total_paid_hours:,.1f} hrs")
+  m4.metric("Onsite Hours", f"{total_onsite_hours:,.1f} hrs")
 
   st.markdown("---")
 
@@ -1200,121 +1184,93 @@ with tab_old_calc:
     tasks_comparison_data.append({
         "name": task_name,
         "plants": t_plants,
-        "rows": shared_rows,
-        "density": shared_density,
         "staff": staff_qty,
         "target_kpi": target_kpi,
         "mh_target": mh_target,
         "dur_target": dur_target,
     })
 
-  st.subheader("📝 Task Breakdowns & Overtime Status")
+  st.markdown("### 📋 Minimalist Task Breakdowns & Overtime Summary")
 
   total_combined_avg_hours = 0.0
 
   for task in tasks_comparison_data:
-    st.markdown(f"#### 📋 {task['name']} (Staff Assigned: {task['staff']})")
-    tc1, tc2 = st.columns(2)
+    input_key = f"minimal_avg_kpi_{task['name']}"
+    if input_key not in st.session_state:
+      st.session_state[input_key] = float(
+          st.session_state.saved_avg_kpis.get(task["name"], 100.0)
+      )
+
+    def update_minimal_kpi(t_name=task["name"], k=input_key):
+      val = float(st.session_state[k])
+      st.session_state.saved_avg_kpis[t_name] = val
+      curr_sets = load_settings()
+      curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
+      save_settings(curr_sets)
 
     is_clip_shoot = "clip/shoot" in task["name"].lower()
     is_shared = "lowering" in task["name"].lower()
 
     if is_clip_shoot:
       limit_ref = max_allowed_hours - ((9.0 / 5.0) * remaining_days)
-      limit_text = f"Max {limit_ref:.1f} Hrs (Minus Pollination)"
+      limit_label = f"Max {limit_ref:.1f}h (Minus Poll.)"
     elif is_shared:
       limit_ref = 20.0
-      limit_text = "Max 20.0 Hrs (Shared Shift Limit)"
+      limit_label = "Max 20.0h (Shared)"
     else:
       limit_ref = max_allowed_hours
-      limit_text = f"Max {limit_ref:.1f} Hrs"
+      limit_label = f"Max {limit_ref:.1f}h"
 
-    # --- Target KPI Card ---
-    with tc1:
-      is_ot_target = task["dur_target"] > limit_ref
-      card_cls = "task-card-alert" if is_ot_target else "task-card-normal"
-      if is_ot_target:
-        status_target = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds ({task['dur_target']:.1f} / {limit_ref:.1f}h)</span>"
-      else:
-        left_t = limit_ref - task["dur_target"]
-        status_target = f"<span style='color: #1E7E34; font-weight: bold;'>✅ On Track ({left_t:.1f}h Buffer)</span>"
+    # Row columns for minimalist view
+    c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
+        [2.2, 1.0, 1.3, 1.5, 1.8]
+    )
 
-      st.markdown(
-          f"""
-            <div class="{card_cls}">
-                <p style="margin-bottom:4px; font-weight:bold; color:#2D6A4F; font-size:1rem;">🎯 Target KPI View (KPI: {task['target_kpi']})</p>
-                <p style="margin-bottom:4px;"><b>Workload:</b> {task['mh_target']:.1f} Man-Hrs &nbsp;|&nbsp; <b>Clock Time:</b> {task['dur_target']:.1f} Hrs</p>
-                <hr style="margin: 6px 0; border: 0; border-top: 1px solid #D0D0D0;">
-                <p style="margin-bottom:2px;"><small><b>Limit:</b> {limit_text}</small></p>
-                <p style="margin-bottom:0px;"><b>Status:</b> {status_target}</p>
-            </div>
-            """,
+    c_name.markdown(f"**{task['name']}**")
+    c_staff.markdown(f"👥 `{task['staff']} Staff`")
+
+    avg_kpi_val = c_kpi.number_input(
+        f"KPI {task['name']}",
+        min_value=1.0,
+        value=float(st.session_state[input_key]),
+        step=10.0,
+        key=input_key,
+        on_change=update_minimal_kpi,
+        label_visibility="collapsed",
+    )
+    st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_val
+
+    mh_avg = task["plants"] / avg_kpi_val if avg_kpi_val > 0 else 0
+    dur_avg = mh_avg / task["staff"] if task["staff"] > 0 else 0
+    total_combined_avg_hours += mh_avg
+
+    c_hrs.markdown(
+        f"`{mh_avg:.1f} Man-Hrs` <br><small"
+        f" style='color:gray;'>({dur_avg:.1f}h/worker)</small>",
+        unsafe_allow_html=True,
+    )
+
+    if dur_avg > limit_ref:
+      c_status.markdown(
+          f"<span style='color: #D32F2F; font-weight:600;'>⚠️ Exceeds"
+          f" ({limit_label})</span>",
+          unsafe_allow_html=True,
+      )
+    else:
+      buffer_h = limit_ref - dur_avg
+      c_status.markdown(
+          f"<span style='color: #1E7E34; font-weight:600;'>✅ On Track"
+          f" ({buffer_h:.1f}h buf)</span>",
           unsafe_allow_html=True,
       )
 
-    # --- Average KPI Card with Permanent Disk Storage ---
-    with tc2:
-      st.markdown(
-          "<p style='margin-bottom:2px; font-weight:bold; color:#1B4332;"
-          " font-size:1rem;'>⭐ Average KPI View</p>",
-          unsafe_allow_html=True,
-      )
+    st.markdown(
+        "<hr style='margin: 4px 0; border: 0; border-top: 1px solid"
+        " #E0E8E2;'>",
+        unsafe_allow_html=True,
+    )
 
-      input_key = f"adv_avg_kpi_input_{task['name']}"
-
-      if input_key not in st.session_state:
-        st.session_state[input_key] = float(
-            st.session_state.saved_avg_kpis.get(task["name"], 100.0)
-        )
-
-
-      def update_avg_kpi(t_name=task["name"], k=input_key):
-        val = float(st.session_state[k])
-        st.session_state.saved_avg_kpis[t_name] = val
-        curr_sets = load_settings()
-        curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
-        save_settings(curr_sets)
-
-
-      avg_kpi_user = st.number_input(
-          f"Average KPI for {task['name']}",
-          min_value=1.0,
-          value=float(st.session_state[input_key]),
-          step=10.0,
-          key=input_key,
-          on_change=update_avg_kpi,
-          label_visibility="collapsed",
-      )
-
-      st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_user
-
-      mh_avg = task["plants"] / avg_kpi_user if avg_kpi_user > 0 else 0
-      dur_avg = mh_avg / task["staff"] if task["staff"] > 0 else 0
-
-      total_combined_avg_hours += mh_avg
-
-      is_ot_avg = dur_avg > limit_ref
-      card_cls2 = "task-card-alert" if is_ot_avg else "task-card-normal"
-      if is_ot_avg:
-        status_avg = f"<span style='color: #D32F2F; font-weight: bold;'>⚠️ Exceeds ({dur_avg:.1f} / {limit_ref:.1f}h)</span>"
-      else:
-        left_a = limit_ref - dur_avg
-        status_avg = f"<span style='color: #1E7E34; font-weight: bold;'>✅ On Track ({left_a:.1f}h Buffer)</span>"
-
-      st.markdown(
-          f"""
-            <div class="{card_cls2}">
-                <p style="margin-bottom:4px;"><b>Workload:</b> {mh_avg:.1f} Man-Hrs &nbsp;|&nbsp; <b>Clock Time:</b> {dur_avg:.1f} Hrs</p>
-                <hr style="margin: 6px 0; border: 0; border-top: 1px solid #D0D0D0;">
-                <p style="margin-bottom:2px;"><small><b>Limit:</b> {limit_text}</small></p>
-                <p style="margin-bottom:0px;"><b>Status:</b> {status_avg}</p>
-            </div>
-            """,
-          unsafe_allow_html=True,
-      )
-    st.markdown("---")
-
-  # --- SHOW LEADING HAND AND OTHERS IN TASK BREAKDOWNS ---
+  # --- SUPPORT TASKS (LEADING HAND & OTHERS) ---
   support_tasks_to_show = ["Leading Hand", "Others"]
   for task_name in support_tasks_to_show:
     if task_name in st.session_state.active_tasks:
@@ -1324,51 +1280,47 @@ with tab_old_calc:
         total_task_mh = staff_qty * hours_per_worker
         total_combined_avg_hours += total_task_mh
 
-        st.markdown(
-            f"#### 📋 {task_name} (Staff Assigned: {staff_qty} Workers)"
+        c_name, c_staff, c_kpi, c_hrs, c_status = st.columns(
+            [2.2, 1.0, 1.3, 1.5, 1.8]
         )
-        st.markdown(
-            f"""
-                <div class="task-card-normal">
-                    <p style="margin-bottom:4px; font-weight:bold; color:#2D6A4F; font-size:1rem;">⭐ Assigned Shift Hours Summary</p>
-                    <p style="margin-bottom:4px;"><b>Total Man-Hours:</b> {total_task_mh:,.1f} Man-Hrs &nbsp;|&nbsp; <b>Per Worker:</b> {hours_per_worker:.1f} Hrs</p>
-                    <hr style="margin: 6px 0; border: 0; border-top: 1px solid #D0D0D0;">
-                    <p style="margin-bottom:0px;"><b>Status:</b> <span style="color: #1E7E34; font-weight: bold;">✅ Scheduled ({staff_qty} Workers Active)</span></p>
-                </div>
-                """,
+        c_name.markdown(f"**{task_name}**")
+        c_staff.markdown(f"👥 `{staff_qty} Staff`")
+        c_kpi.markdown(f"<small style='color:gray;'>Fixed Role</small>")
+        c_hrs.markdown(
+            f"`{total_task_mh:.1f} Man-Hrs` <br><small"
+            f" style='color:gray;'>({hours_per_worker:.1f}h/worker)</small>",
             unsafe_allow_html=True,
         )
-        st.markdown("---")
+        c_status.markdown(
+            "<span style='color: #1E7E34; font-weight:600;'>✅ Scheduled</span>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<hr style='margin: 4px 0; border: 0; border-top: 1px solid"
+            " #E0E8E2;'>",
+            unsafe_allow_html=True,
+        )
 
-  # --- TOTAL COMBINED HOURS SUMMARY ---
-  st.markdown(
-      f"""
-        <div style="background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%); padding: 18px 20px; border-radius: 14px; color: #FFFFFF; box-shadow: 0 4px 15px rgba(27,47,33,0.15); margin-top: 15px;">
-            <h3 style="margin: 0 0 8px 0; color: #FFFFFF; font-size: 1.25rem;">📊 Total Combined Hours Summary</h3>
-            <p style="margin: 0; font-size: 1.1rem;">
-                <b>Total Man-Hours (Average KPI View for Regular Tasks + Leading Hand + Others):</b> 
-                <span style="font-size: 1.3rem; font-weight: bold; color: #A3E4D7;">{total_combined_avg_hours:,.1f} Man-Hours</span>
-            </p>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
-
-  # --- PAID COFFEE BREAK ALLOWANCE ---
+  # --- TOTAL COMBINED HOURS & COFFEE BREAK SUMMARY ---
   coffee_break_hours = total_recommended_staff * 0.25 * remaining_days
   final_grand_total = total_combined_avg_hours + coffee_break_hours
 
   st.markdown(
       f"""
-        <div style="background: rgba(255, 255, 255, 0.9); padding: 15px 20px; border-radius: 14px; border: 1px solid #C5DACB; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-top: 12px;">
-            <p style="margin: 0 0 6px 0; font-weight: bold; color: #2D6A4F; font-size: 1.1rem;">☕ Paid Coffee Break Allowance</p>
-            <p style="margin: 0; color: #333333; font-size: 1rem;">
-                <b>Calculation:</b> {total_recommended_staff} Active Workers × 0.25 hrs/day × {remaining_days} Days = <b>{coffee_break_hours:,.2f} Man-Hours</b>
-            </p>
-            <hr style="margin: 8px 0; border: 0; border-top: 1px solid #D0D0D0;">
-            <p style="margin: 0; font-size: 1.1rem; color: #1B4332;">
-                <b>Grand Total Including Coffee Breaks:</b> <span style="font-size: 1.25rem; font-weight: bold; color: #2D6A4F;">{final_grand_total:,.2f} Man-Hours</span>
-            </p>
+        <div style="background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%); padding: 15px 20px; border-radius: 12px; color: #FFFFFF; box-shadow: 0 4px 12px rgba(27,47,33,0.1); margin-top: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <h4 style="margin: 0 0 4px 0; color: #FFFFFF; font-size: 1.1rem;">📊 Summary Totals</h4>
+                    <p style="margin: 0; font-size: 0.95rem; color: #E8F0EA;">
+                        Regular Tasks + Support Roles: <b>{total_combined_avg_hours:,.1f} Man-Hrs</b> &nbsp;|&nbsp; 
+                        Paid Coffee Breaks ({total_recommended_staff} staff × 0.25h × {remaining_days}d): <b>{coffee_break_hours:,.2f} Man-Hrs</b>
+                    </p>
+                </div>
+                <div style="text-align: right; margin-top: 5px;">
+                    <span style="font-size: 0.9rem; color: #A3E4D7; display: block;">GRAND TOTAL</span>
+                    <span style="font-size: 1.35rem; font-weight: bold; color: #FFFFFF;">{final_grand_total:,.2f} Man-Hours</span>
+                </div>
+            </div>
         </div>
         """,
       unsafe_allow_html=True,
