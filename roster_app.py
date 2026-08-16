@@ -151,8 +151,9 @@ if "task_targets" not in st.session_state:
       "Leading Hand": 100.0,
       "Others": 100.0,
   }
-  loaded_targets = saved_settings.get("task_targets", default_targets)
-  st.session_state.task_targets = loaded_targets
+  st.session_state.task_targets = saved_settings.get(
+      "task_targets", default_targets
+  )
 
 # Persistent Average KPIs dictionary loaded from settings
 if "saved_avg_kpis" not in st.session_state:
@@ -557,14 +558,16 @@ def save_staff_data(data):
 if "staff_db" not in st.session_state:
   st.session_state.staff_db = load_and_sanitize_staff_data()
 
+# Persistent Active Tasks loaded from settings.json
 if "active_tasks" not in st.session_state:
-  st.session_state.active_tasks = {
+  default_tasks = {
       "Leading Hand": 2,
       "Clip/Shoot & Pollination": 12,
       "De-leafing": 5,
       "Lowering": 4,
       "Truss Pruning": 3,
   }
+  st.session_state.active_tasks = saved_settings.get("active_tasks", default_tasks)
 
 # Calculator Session State Defaults
 if "calc_rows" not in st.session_state:
@@ -576,7 +579,7 @@ if "calc_plants_per_row" not in st.session_state:
 st.title("📋 Glasshouse 3 - Weekly Labor Planner")
 st.markdown("---")
 
-# --- UPDATED TAB ORDER (Smart Headcount & Shift Hours moved to last) ---
+# --- TAB ORDER ---
 (
     tab_planner,
     tab_old_calc,
@@ -727,7 +730,6 @@ with tab_planner:
       updated_targets[s] = t_val
     st.session_state.task_targets = updated_targets
 
-    # Save target KPIs to settings json
     curr_settings = load_settings()
     curr_settings["task_targets"] = updated_targets
     save_settings(curr_settings)
@@ -787,6 +789,11 @@ with tab_planner:
     lh_names = [lh["name"] for lh in leading_hands_db]
     st.markdown("---")
     st.subheader("⭐ Leading Hand Selection")
+
+    # Ensure Tico and all other leading hands are active by default
+    if "selected_leading_hands_filter" not in st.session_state:
+      st.session_state["selected_leading_hands_filter"] = lh_names
+
     selected_leading_hands = st.multiselect(
         "Select Leading Hands to Keep Active:",
         options=lh_names,
@@ -815,38 +822,58 @@ with tab_planner:
             st.session_state.skills_list.append(task_name_to_add)
             st.session_state.task_targets[task_name_to_add] = 100.0
           st.session_state.active_tasks[task_name_to_add] = new_task_headcount
+          st.session_state[f"cnt_{task_name_to_add}"] = int(new_task_headcount)
+
+          # Save active tasks to settings.json
+          curr_sets = load_settings()
+          curr_sets["active_tasks"] = st.session_state.active_tasks
+          save_settings(curr_sets)
+
           st.success(f"Added task: {task_name_to_add}")
           st.rerun()
 
     st.markdown("**Adjust Required Headcount:**")
 
-    updated_tasks = {}
-    tasks_to_delete = {}
+    tasks_to_delete = []
 
     for task_name, count in list(st.session_state.active_tasks.items()):
       c1, c2, c3 = st.columns([3, 1.5, 0.6])
       c1.markdown(f"**{task_name}**")
+
+      k = f"cnt_{task_name}"
+      if k not in st.session_state:
+        st.session_state[k] = int(count)
+
+      def update_hc(t_name=task_name, key_name=k):
+        val = int(st.session_state[key_name])
+        st.session_state.active_tasks[t_name] = val
+        curr_sets = load_settings()
+        curr_sets["active_tasks"] = st.session_state.active_tasks
+        save_settings(curr_sets)
+
       new_cnt = c2.number_input(
           "Headcount",
           min_value=0,
-          value=int(count),
-          key=f"cnt_{task_name}",
+          step=1,
+          key=k,
+          on_change=update_hc,
           label_visibility="collapsed",
       )
+      st.session_state.active_tasks[task_name] = int(new_cnt)
 
       if c3.button("🗑️", key=f"del_{task_name}", type="tertiary"):
-        tasks_to_delete[task_name] = True
-      else:
-        updated_tasks[task_name] = new_cnt
+        tasks_to_delete.append(task_name)
 
     if tasks_to_delete:
       for d_task in tasks_to_delete:
-        if d_task in updated_tasks:
-          del updated_tasks[d_task]
-      st.session_state.active_tasks = updated_tasks
+        if d_task in st.session_state.active_tasks:
+          del st.session_state.active_tasks[d_task]
+        if f"cnt_{d_task}" in st.session_state:
+          del st.session_state[f"cnt_{d_task}"]
+      curr_sets = load_settings()
+      curr_sets["active_tasks"] = st.session_state.active_tasks
+      save_settings(curr_sets)
       st.rerun()
-
-    st.session_state.active_tasks = updated_tasks
 
   task_requirements = {
       t: c for t, c in st.session_state.active_tasks.items() if c > 0
@@ -1052,7 +1079,7 @@ with tab_planner:
 
 
 # ==========================================
-# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS (With Grand Total Metrics on Top & 100% Persistent Average KPIs)
+# TAB 2: ADVANCED WORKLOAD & OVERTIME STATUS
 # ==========================================
 with tab_old_calc:
   st.subheader("🧮 Advanced Workload & Overtime Status")
@@ -1126,7 +1153,6 @@ with tab_old_calc:
 
     target_kpi = float(st.session_state.task_targets.get(task_name, 600.0))
 
-    # Initialize persistent saved average KPI securely from persistent settings or staff db
     if task_name not in st.session_state.saved_avg_kpis:
       kpis_logged = []
       for person in st.session_state.staff_db:
@@ -1137,7 +1163,6 @@ with tab_old_calc:
           sum(kpis_logged) / len(kpis_logged) if kpis_logged else target_kpi
       )
       st.session_state.saved_avg_kpis[task_name] = default_logged_avg
-      # Save to settings file immediately
       curr_sets = load_settings()
       curr_sets["avg_kpis"] = st.session_state.saved_avg_kpis
       save_settings(curr_sets)
@@ -1202,7 +1227,7 @@ with tab_old_calc:
           unsafe_allow_html=True,
       )
 
-    # --- Average KPI Card with Permanent Disk Storage (survives reloads) ---
+    # --- Average KPI Card with Permanent Disk Storage ---
     with tc2:
       st.markdown(
           "<p style='margin-bottom:2px; font-weight:bold; color:#1B4332;"
@@ -1236,7 +1261,6 @@ with tab_old_calc:
           label_visibility="collapsed",
       )
 
-      # Ensure saved values stay updated
       st.session_state.saved_avg_kpis[task["name"]] = avg_kpi_user
 
       mh_avg = task["plants"] / avg_kpi_user if avg_kpi_user > 0 else 0
@@ -1428,7 +1452,7 @@ with tab_progress:
 
 
 # ==========================================
-# TAB 5: SMART HEADCOUNT & SHIFT HOURS (Moved to last)
+# TAB 5: SMART HEADCOUNT & SHIFT HOURS (Last Tab)
 # ==========================================
 with tab_smart_calc:
   st.subheader("📊 Smart Headcount & Shift Hours Calculator")
@@ -1569,7 +1593,12 @@ with tab_smart_calc:
       "🔄 Sync Headcounts to Weekly Roster Planner (Tab 1)", type="primary"
   ):
     for task_name, res in smart_calc_results.items():
-      st.session_state.active_tasks[task_name] = res["recommended"]
+      rec_val = int(res["recommended"])
+      st.session_state.active_tasks[task_name] = rec_val
+      st.session_state[f"cnt_{task_name}"] = rec_val
+    curr_sets = load_settings()
+    curr_sets["active_tasks"] = st.session_state.active_tasks
+    save_settings(curr_sets)
     st.success(
         "Successfully populated Tab 1 headcounts with the recommended values!"
     )
