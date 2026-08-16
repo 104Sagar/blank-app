@@ -2,6 +2,7 @@ import json
 import math
 import os
 import streamlit as st
+from datetime import datetime
 
 # Page setup
 st.set_page_config(
@@ -152,6 +153,12 @@ if "task_targets" not in st.session_state:
 if "saved_avg_kpis" not in st.session_state:
   st.session_state.saved_avg_kpis = saved_settings.get("avg_kpis", {})
 
+# Persistent Row Progress loaded from settings
+if "completed_rows_count" not in st.session_state:
+  st.session_state.completed_rows_count = saved_settings.get(
+      "completed_rows_count", 0
+  )
+
 # Default Staff Data
 DEFAULT_STAFF_DB = [
     {
@@ -163,12 +170,23 @@ DEFAULT_STAFF_DB = [
             "Clip/Shoot & Pollination",
         ],
         "task_performance": {
-            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Pruning": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
         },
     },
@@ -181,12 +199,23 @@ DEFAULT_STAFF_DB = [
             "Clip/Shoot & Pollination",
         ],
         "task_performance": {
-            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Pruning": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
         },
     },
@@ -199,12 +228,23 @@ DEFAULT_STAFF_DB = [
             "Clip/Shoot & Pollination",
         ],
         "task_performance": {
-            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Pruning": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
         },
     },
@@ -213,7 +253,12 @@ DEFAULT_STAFF_DB = [
         "category": "Leading Hand",
         "skills": ["Leading Hand"],
         "task_performance": {
-            "Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""}
+            "Leading Hand": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            }
         },
     },
     {
@@ -221,8 +266,18 @@ DEFAULT_STAFF_DB = [
         "category": "Leading Hand",
         "skills": ["Leading Hand", "Others"],
         "task_performance": {
-            "Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""},
-            "Others": {"kpi": 100.0, "quality": "👍", "notes": ""},
+            "Leading Hand": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Others": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -230,7 +285,12 @@ DEFAULT_STAFF_DB = [
         "category": "Leading Hand",
         "skills": ["Leading Hand"],
         "task_performance": {
-            "Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""}
+            "Leading Hand": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            }
         },
     },
     {
@@ -242,8 +302,14 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -255,8 +321,14 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
+            "De-leafing": {
+                "kpi": 800.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -268,8 +340,14 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "Truss Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""},
+            "Truss Pruning": {
+                "kpi": 90.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -277,8 +355,18 @@ DEFAULT_STAFF_DB = [
         "category": "TOTC",
         "skills": ["De-leafing", "Lowering"],
         "task_performance": {
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
-            "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""},
+            "De-leafing": {
+                "kpi": 800.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Lowering": {
+                "kpi": 1333.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -286,8 +374,18 @@ DEFAULT_STAFF_DB = [
         "category": "TOTC",
         "skills": ["De-leafing", "Truss Support"],
         "task_performance": {
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "De-leafing": {
+                "kpi": 800.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -295,8 +393,18 @@ DEFAULT_STAFF_DB = [
         "category": "TOTC",
         "skills": ["Others", "De-leafing"],
         "task_performance": {
-            "Others": {"kpi": 100.0, "quality": "👍", "notes": ""},
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
+            "Others": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "De-leafing": {
+                "kpi": 800.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -308,8 +416,14 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
+            "De-leafing": {
+                "kpi": 800.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -321,8 +435,14 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -334,6 +454,7 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             }
         },
     },
@@ -346,8 +467,14 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "Lowering": {"kpi": 1333.0, "quality": "👍", "notes": ""},
+            "Lowering": {
+                "kpi": 1333.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -355,8 +482,18 @@ DEFAULT_STAFF_DB = [
         "category": "Urson",
         "skills": ["Truss Pruning", "Truss Support"],
         "task_performance": {
-            "Truss Pruning": {"kpi": 95.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Pruning": {
+                "kpi": 95.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -368,8 +505,14 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "Others": {"kpi": 100.0, "quality": "👍", "notes": ""},
+            "Others": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -381,6 +524,7 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             }
         },
     },
@@ -393,6 +537,7 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             }
         },
     },
@@ -405,6 +550,7 @@ DEFAULT_STAFF_DB = [
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             }
         },
     },
@@ -413,8 +559,18 @@ DEFAULT_STAFF_DB = [
         "category": "Urson",
         "skills": ["De-leafing", "Truss Pruning"],
         "task_performance": {
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
-            "Truss Pruning": {"kpi": 90.0, "quality": "👍", "notes": ""},
+            "De-leafing": {
+                "kpi": 800.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Truss Pruning": {
+                "kpi": 90.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -422,7 +578,12 @@ DEFAULT_STAFF_DB = [
         "category": "Urson",
         "skills": ["De-leafing"],
         "task_performance": {
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""}
+            "De-leafing": {
+                "kpi": 800.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            }
         },
     },
     {
@@ -430,8 +591,18 @@ DEFAULT_STAFF_DB = [
         "category": "Urson",
         "skills": ["De-leafing", "Truss Support"],
         "task_performance": {
-            "De-leafing": {"kpi": 800.0, "quality": "👍", "notes": ""},
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "De-leafing": {
+                "kpi": 800.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -443,13 +614,24 @@ DEFAULT_STAFF_DB = [
             "Truss Support",
         ],
         "task_performance": {
-            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Pruning": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -461,13 +643,24 @@ DEFAULT_STAFF_DB = [
             "Truss Support",
         ],
         "task_performance": {
-            "Truss Pruning": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Pruning": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
             "Clip/Shoot & Pollination": {
                 "kpi": 674.0,
                 "quality": "👍",
                 "notes": "",
+                "history": [],
             },
-            "Truss Support": {"kpi": 1200.0, "quality": "👍", "notes": ""},
+            "Truss Support": {
+                "kpi": 1200.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         },
     },
     {
@@ -475,7 +668,12 @@ DEFAULT_STAFF_DB = [
         "category": "Urson",
         "skills": ["Others"],
         "task_performance": {
-            "Others": {"kpi": 100.0, "quality": "👍", "notes": ""}
+            "Others": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            }
         },
     },
     {
@@ -483,7 +681,12 @@ DEFAULT_STAFF_DB = [
         "category": "Urson",
         "skills": ["Others"],
         "task_performance": {
-            "Others": {"kpi": 100.0, "quality": "👍", "notes": ""}
+            "Others": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            }
         },
     },
 ]
@@ -525,7 +728,12 @@ def load_and_sanitize_staff_data():
         "category": "Leading Hand",
         "skills": ["Leading Hand"],
         "task_performance": {
-            "Leading Hand": {"kpi": 100.0, "quality": "👍", "notes": ""}
+            "Leading Hand": {
+                "kpi": 100.0,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            }
         },
     })
     modified = True
@@ -535,18 +743,12 @@ def load_and_sanitize_staff_data():
       person["task_performance"] = {}
       modified = True
 
+    for sk, perf in person["task_performance"].items():
+      if "history" not in perf:
+        perf["history"] = []
+        modified = True
+
     skills = person.get("skills", [])
-    for i, sk in enumerate(skills):
-      if sk in ["Truss Cluster Prune", "Pruning"]:
-        skills[i] = "Truss Pruning"
-        modified = True
-
-    tp = person.get("task_performance", {})
-    for old_k in ["Truss Cluster Prune", "Pruning"]:
-      if old_k in tp:
-        tp["Truss Pruning"] = tp.pop(old_k)
-        modified = True
-
     for sk in skills:
       if sk not in person["task_performance"]:
         default_t = st.session_state.get("task_targets", {}).get(sk, 100.0)
@@ -554,12 +756,9 @@ def load_and_sanitize_staff_data():
             "kpi": default_t,
             "quality": "👍",
             "notes": "",
+            "history": [],
         }
         modified = True
-
-    if person.get("notes") in LEGACY_NOTES_TO_REMOVE:
-      person["notes"] = ""
-      modified = True
 
   if modified:
     save_staff_data(data)
@@ -596,6 +795,10 @@ plant_density_sqm = total_gh_plants / 50000.0
 # Title
 st.title("📋 GH3 Labor Planner")
 st.markdown("---")
+
+# Initialize Absent Staff state if not present
+if "absent_staff_input" not in st.session_state:
+  st.session_state.absent_staff_input = []
 
 # --- GLOBAL ALLOCATION ENGINE WITH LEADING HAND RESTRICTION ---
 absent_staff = st.session_state.get("absent_staff_input", [])
@@ -639,7 +842,8 @@ def allocate_by_tier(tier_index, match_label):
         if len(skills) > tier_index and skills[tier_index] == task_name:
           def_t = st.session_state.task_targets.get(task_name, 100.0)
           t_perf = person.get("task_performance", {}).get(
-              task_name, {"kpi": def_t, "quality": "👍", "notes": ""}
+              task_name,
+              {"kpi": def_t, "quality": "👍", "notes": "", "history": []},
           )
           kpi_score = t_perf.get("kpi", def_t)
           qual_score = 0 if t_perf.get("quality", "👍") == "👍" else 1
@@ -718,7 +922,7 @@ extra_available_staff = [
 ]
 
 
-# --- 6 TABS ---
+# --- 7 TABS (Added Row Progress Tracker Tab) ---
 (
     tab_copy_lists,
     tab_planner,
@@ -726,17 +930,19 @@ extra_available_staff = [
     tab_old_calc,
     tab_kpi,
     tab_progress,
+    tab_row_tracker,
 ) = st.tabs([
     "📱 Copy Lists",
     "📋 Roster & Allocation",
     "📊 Smart Headcount & Shift Hours",
-    "🧮 Advanced Workload & Overtime Status",
+    "🧮 Workload & Status",
     "⭐ Weekly KPI Tracker",
-    "📈 Staff Progress & Skills",
+    "📈 Staff Progress & Trends",
+    "📌 Row Progress",
 ])
 
 # ==========================================
-# TAB 1: COPY-PASTE READY LISTS (FIRST TAB)
+# TAB 1: COPY-PASTE READY LISTS
 # ==========================================
 with tab_copy_lists:
   st.subheader("📱 Copy-Paste Ready Lists")
@@ -859,7 +1065,12 @@ with tab_planner:
         t_perf = {}
         for sk in skills_arr:
           def_t = st.session_state.task_targets.get(sk, 100.0)
-          t_perf[sk] = {"kpi": def_t, "quality": "👍", "notes": ""}
+          t_perf[sk] = {
+              "kpi": def_t,
+              "quality": "👍",
+              "notes": "",
+              "history": [],
+          }
 
         st.session_state.staff_db.append({
             "name": new_name.strip(),
@@ -935,6 +1146,7 @@ with tab_planner:
                     "kpi": def_t,
                     "quality": "👍",
                     "notes": "",
+                    "history": [],
                 }
             save_staff_data(st.session_state.staff_db)
             st.sidebar.success("Updated!")
@@ -985,9 +1197,21 @@ with tab_planner:
   with col_ctrl1:
     st.subheader("1. Availability Check")
     all_names = [s["name"] for s in st.session_state.staff_db]
-    absent_staff = st.multiselect(
-        "Absent / Leave:", options=all_names, key="absent_staff_input"
+
+    # Quick Absenteeism Checkbox Toggles for Each Staff Member
+    st.markdown(
+        "<small style='color:gray;'>Tap to mark absent for today:</small>",
+        unsafe_allow_html=True,
     )
+    for name in all_names:
+      is_absent = name in st.session_state.absent_staff_input
+      checked = st.checkbox(f"🔴 {name} (Absent)", value=is_absent, key=f"absent_chk_{name}")
+      if checked and name not in st.session_state.absent_staff_input:
+        st.session_state.absent_staff_input.append(name)
+      elif not checked and name in st.session_state.absent_staff_input:
+        st.session_state.absent_staff_input.remove(name)
+
+    absent_staff = st.session_state.absent_staff_input
 
     leading_hands_db = [
         s for s in st.session_state.staff_db if s["category"] == "Leading Hand"
@@ -1253,12 +1477,12 @@ with tab_smart_calc:
     total_avg_rec_hc += rec_hc
     total_avg_mh += mh
 
-  # Pollination (Average KPI)
+  # Pollination (Average KPI - factored for 3x a week)
   asc1_p, asc2_p, asc3_p, asc4_p = st.columns([2, 1.2, 1.5, 1.5])
-  asc1_p.markdown("**Pollination**")
+  asc1_p.markdown("**Pollination (3x/wk)**")
   asc2_p.markdown("`2500 (Fixed)`")
   poll_avg_hc = max(0, 12 - clip_shoot_avg_rec)
-  poll_avg_mh = total_gh_plants / 2500.0
+  poll_avg_mh = (total_gh_plants / 2500.0) * 3
   asc3_p.markdown(f"`{float(poll_avg_hc):.2f}`")
   asc4_p.markdown(f"**{poll_avg_hc}**")
   total_avg_rec_hc += poll_avg_hc
@@ -1269,7 +1493,7 @@ with tab_smart_calc:
       f"""
         <div style="background: rgba(45,106,79,0.08); padding: 10px 14px; border-radius: 8px; border: 1px solid #C5DACB; margin-top: 8px; margin-bottom: 15px;">
             <p style="margin: 0; font-size: 0.95rem; color: #1B4332;">
-                <b>Average Total:</b> <b>{total_avg_rec_hc} Workers</b> | <b>{total_avg_mh:,.1f} Man-Hrs</b> | <b>{total_avg_hours:,.1f} Hrs</b>
+                <b>Average Total:</b> <b>{total_avg_rec_hc} Workers</b> | <b>{total_avg_mh:,.1f} Man-Hrs</b>
             </p>
         </div>
         """,
@@ -1355,12 +1579,12 @@ with tab_smart_calc:
     total_target_rec_hc += rec_hc
     total_target_mh += mh
 
-  # Pollination (Target KPI)
+  # Pollination (Target KPI - factored for 3x a week)
   sc1_p, sc2_p, sc3_p, sc4_p = st.columns([2, 1.2, 1.5, 1.5])
-  sc1_p.markdown("**Pollination**")
+  sc1_p.markdown("**Pollination (3x/wk)**")
   sc2_p.markdown("`2500 (Fixed)`")
   poll_target_hc = max(0, 12 - clip_shoot_target_rec)
-  poll_target_mh = total_gh_plants / 2500.0
+  poll_target_mh = (total_gh_plants / 2500.0) * 3
   sc3_p.markdown(f"`{float(poll_target_hc):.2f}`")
   sc4_p.markdown(f"**{poll_target_hc}**")
   total_target_rec_hc += poll_target_hc
@@ -1371,7 +1595,7 @@ with tab_smart_calc:
       f"""
         <div style="background: rgba(45,106,79,0.08); padding: 10px 14px; border-radius: 8px; border: 1px solid #C5DACB; margin-top: 8px; margin-bottom: 15px;">
             <p style="margin: 0; font-size: 0.95rem; color: #1B4332;">
-                <b>Target Total:</b> <b>{total_target_rec_hc} Workers</b> | <b>{total_target_mh:,.1f} Man-Hrs</b> | <b>{total_target_hours:,.1f} Hrs</b>
+                <b>Target Total:</b> <b>{total_target_rec_hc} Workers</b> | <b>{total_target_mh:,.1f} Man-Hrs</b>
             </p>
         </div>
         """,
@@ -1382,7 +1606,11 @@ with tab_smart_calc:
 
   if st.button("🔄 Sync Average KPI Headcounts to Tab 2", type="primary"):
     for task_name, res in avg_kpi_calc_results.items():
-      rec_val = 12 if task_name == "Clip/Shoot & Pollination" else int(res["recommended"])
+      rec_val = (
+          12
+          if task_name == "Clip/Shoot & Pollination"
+          else int(res["recommended"])
+      )
       st.session_state.active_tasks[task_name] = rec_val
       if f"cnt_{task_name}" in st.session_state:
         del st.session_state[f"cnt_{task_name}"]
@@ -1394,13 +1622,13 @@ with tab_smart_calc:
 
 
 # ==========================================
-# TAB 4: ADVANCED WORKLOAD & OVERTIME STATUS
+# TAB 4: WORKLOAD & STATUS
 # ==========================================
 with tab_old_calc:
   st.subheader("🧮 Workload & Overtime Status Dashboard")
   st.markdown(
       "Review the comprehensive workload, total man-hours, and weekly pace"
-      " per worker across all active tasks."
+      " per worker across all active tasks (including 3x weekly pollination)."
   )
 
   c_ctrl1, c_ctrl2 = st.columns(2)
@@ -1428,7 +1656,7 @@ with tab_old_calc:
   )
   total_combined_avg_hours = 0.0
 
-  # Render one clean informational card/box per task
+  # Render task-specific cards
   for task_name, staff_qty in st.session_state.active_tasks.items():
     if staff_qty <= 0:
       continue
@@ -1452,8 +1680,19 @@ with tab_old_calc:
           )
       )
       task_mh = total_gh_plants / kpi_val if kpi_val > 0 else 0
+
+      # Factor 3x weekly for Clip/Shoot & Pollination task
+      if task_name == "Clip/Shoot & Pollination":
+        task_mh = (total_gh_plants / kpi_val) + (
+            (total_gh_plants / 2500.0) * 3
+        )
+        kpi_display = (
+            f"Clip/Shoot ({kpi_val:,.0f}) + Pollination 3x/wk (2,500)"
+        )
+      else:
+        kpi_display = f"KPI Rate: {kpi_val:,.1f} plants/worker/day"
+
       dur_avg = task_mh / staff_qty if staff_qty > 0 else 0
-      kpi_display = f"KPI Rate: {kpi_val:,.1f} plants/worker/day"
 
       is_clip_shoot = "clip/shoot" in task_name.lower()
       limit_ref = (
@@ -1543,7 +1782,12 @@ with tab_kpi:
         c1.markdown(f"**{person['name']}**")
         p_perf = person.get("task_performance", {}).get(
             selected_task_to_eval,
-            {"kpi": target_val_for_task, "quality": "👍", "notes": ""},
+            {
+                "kpi": target_val_for_task,
+                "quality": "👍",
+                "notes": "",
+                "history": [],
+            },
         )
         kpi_in = c2.number_input(
             "KPI",
@@ -1576,22 +1820,46 @@ with tab_kpi:
       if st.form_submit_button(
           f"💾 Save Ratings for {selected_task_to_eval}", type="primary"
       ):
+        current_date_str = datetime.now().strftime("%d %b %Y")
         for person in st.session_state.staff_db:
           name = person["name"]
           if name in form_inputs:
             if "task_performance" not in person:
               person["task_performance"] = {}
-            person["task_performance"][selected_task_to_eval] = form_inputs[name]
+            if selected_task_to_eval not in person["task_performance"]:
+              person["task_performance"][selected_task_to_eval] = {
+                  "history": []
+              }
+
+            old_perf = person["task_performance"][selected_task_to_eval]
+            old_kpi = old_perf.get("kpi")
+            old_qual = old_perf.get("quality")
+
+            # Push current rating to history log if valid
+            history_list = old_perf.get("history", [])
+            if old_kpi is not None:
+              history_list.append({
+                  "date": current_date_str,
+                  "kpi": old_kpi,
+                  "quality": old_qual,
+              })
+
+            new_data = form_inputs[name]
+            new_data["history"] = history_list
+            person["task_performance"][selected_task_to_eval] = new_data
+
         save_staff_data(st.session_state.staff_db)
-        st.success("Saved successfully!")
+        st.success(
+            "Saved successfully! Historical KPI trends updated automatically."
+        )
         st.rerun()
 
 
 # ==========================================
-# TAB 6: STAFF PROGRESS & SKILLS DIRECTORY
+# TAB 6: STAFF PROGRESS & HISTORICAL TRENDS
 # ==========================================
 with tab_progress:
-  st.subheader("📈 Staff Skills Directory")
+  st.subheader("📈 Staff Skills & Historical KPI Trends")
   search_query = st.text_input("🔍 Search staff:", key="staff_search_progress")
 
   for person in st.session_state.staff_db:
@@ -1605,9 +1873,95 @@ with tab_progress:
           for idx, sk in enumerate(person.get("skills", [])):
             st.markdown(f"- {sk}")
         with col_p2:
-          st.markdown("##### 📊 KPI Records")
+          st.markdown("##### 📊 Current KPI & Historical Trends")
           for t_name, metrics in person.get("task_performance", {}).items():
+            current_kpi = metrics.get("kpi", 100)
+            current_qual = metrics.get("quality", "👍")
             st.markdown(
-                f"- **{t_name}**: KPI **{metrics.get('kpi', 100)}** |"
-                f" {metrics.get('quality', '👍')}"
+                f"- **{t_name}**: Current KPI **{current_kpi}** |"
+                f" {current_qual}"
             )
+
+            history = metrics.get("history", [])
+            if history:
+              history_str = ", ".join([
+                  f"{h['date']}: {h['kpi']} ({h['quality']})" for h in history
+              ])
+              st.markdown(
+                  f"&nbsp;&nbsp;&nbsp;&nbsp;<small"
+                  f" style='color:gray;'>History: {history_str}</small>"
+              )
+            else:
+              st.markdown(
+                  "&nbsp;&nbsp;&nbsp;&nbsp;<small"
+                  " style='color:gray;'>History: No prior weekly logs"
+                  " yet</small>"
+              )
+
+
+# ==========================================
+# TAB 7: ROW PROGRESS TRACKER
+# ==========================================
+with tab_row_tracker:
+  st.subheader("📌 Greenhouse Row Progress Tracker")
+  st.markdown(
+      "Track completed rows out of **260 total rows** to prevent missed sections"
+      " or double-work across shifts."
+  )
+
+  completed = st.session_state.completed_rows_count
+
+  # Quick Action Buttons
+  col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
+  if col_btn1.button("➕ 10 Rows"):
+    st.session_state.completed_rows_count = min(260, completed + 10)
+    save_settings({"completed_rows_count": st.session_state.completed_rows_count, "active_tasks": st.session_state.active_tasks, "task_targets": st.session_state.task_targets, "avg_kpis": st.session_state.saved_avg_kpis})
+    st.rerun()
+  if col_btn2.button("➕ 50 Rows"):
+    st.session_state.completed_rows_count = min(260, completed + 50)
+    save_settings({"completed_rows_count": st.session_state.completed_rows_count, "active_tasks": st.session_state.active_tasks, "task_targets": st.session_state.task_targets, "avg_kpis": st.session_state.saved_avg_kpis})
+    st.rerun()
+  if col_btn3.button("Reset (0)"):
+    st.session_state.completed_rows_count = 0
+    save_settings({"completed_rows_count": 0, "active_tasks": st.session_state.active_tasks, "task_targets": st.session_state.task_targets, "avg_kpis": st.session_state.saved_avg_kpis})
+    st.rerun()
+  if col_btn4.button("Complete All (260)"):
+    st.session_state.completed_rows_count = 260
+    save_settings({"completed_rows_count": 260, "active_tasks": st.session_state.active_tasks, "task_targets": st.session_state.task_targets, "avg_kpis": st.session_state.saved_avg_kpis})
+    st.rerun()
+
+  st.markdown("---")
+
+  # Slider / Number Input for Exact Row Control
+  def update_row_slider():
+    curr_sets = load_settings()
+    curr_sets["completed_rows_count"] = st.session_state.row_slider_input
+    save_settings(curr_sets)
+
+  completed_slider = st.slider(
+      "Adjust Completed Rows:",
+      min_value=0,
+      max_value=260,
+      value=int(st.session_state.completed_rows_count),
+      step=1,
+      key="row_slider_input",
+      on_change=update_row_slider
+  )
+  st.session_state.completed_rows_count = completed_slider
+
+  # Visual Progress Display Card
+  pct_done = (completed_slider / 260.0) * 100.0
+  remaining_rows = 260 - completed_slider
+
+  st.markdown(
+      f"""
+      <div style="background: #FFFFFF; padding: 20px; border-radius: 12px; border: 1px solid #B5CBC0; box-shadow: 0 2px 8px rgba(0,0,0,0.03); margin-top: 15px; text-align: center;">
+          <h2 style="margin: 0; color: #1B4332;">{completed_slider} / 260 Rows Completed ({pct_done:.1f}%)</h2>
+          <p style="margin: 8px 0 0 0; color: #555; font-size: 1rem;">Remaining: <b>{remaining_rows} rows</b> left to cover</p>
+      </div>
+      """,
+      unsafe_allow_html=True,
+  )
+
+  # Visual Progress Bar
+  st.progress(completed_slider / 260.0)
