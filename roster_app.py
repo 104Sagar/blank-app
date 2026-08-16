@@ -371,20 +371,20 @@ with tab_planner:
 
     st.markdown("---")
 
-    # --- TASK-AWARE SMART ALLOCATION ENGINE WITH FALLBACK ---
+    # --- TWO-PASS ALLOCATION ENGINE ---
     available_pool = [s for s in st.session_state.staff_db if s["name"] not in absent_staff]
     cat_priority = {"GG": 1, "TOTC": 2, "Leading Hand": 2, "Urson": 3}
 
     allocated_roster = {task: [] for task in task_requirements}
 
-    # Pass 1: Strict matching based on skills & category
+    # PASS 1: Strict skill-matching allocation first
     for task_name, req_count in task_requirements.items():
         candidates_for_task = []
         for person in available_pool:
             already_assigned_tasks = [t for t, mems in allocated_roster.items() if person in mems]
             if not already_assigned_tasks:
                 skills = person.get("skills", [])
-                if task_name in skills or (not skills and person["category"] in ["GG", "TOTC"] and task_name != "Leading Hand"):
+                if task_name in skills:
                     t_perf = person.get("task_performance", {}).get(task_name, {"kpi": 100.0, "quality": "👍", "notes": ""})
                     kpi_score = t_perf.get("kpi", 100.0)
                     qual_score = 0 if t_perf.get("quality", "👍") == "👍" else 1
@@ -403,15 +403,23 @@ with tab_planner:
             if len(allocated_roster[task_name]) < req_count:
                 allocated_roster[task_name].append(cand["person"])
 
-    # Pass 2 (Fallback): Allocate remaining unassigned staff to any task that is still short-staffed
+    # PASS 2: Fallback fill at last if positions remain unfilled (assign unassigned staff even without exact skill match)
+    for task_name, req_count in task_requirements.items():
+        while len(allocated_roster[task_name]) < req_count:
+            assigned_flat = [m for mems in allocated_roster.values() for m in mems]
+            unassigned_pool = [p for p in available_pool if p not in assigned_flat]
+            
+            if not unassigned_pool:
+                break # No staff left at all
+            
+            # Sort remaining unassigned staff by category priority as a fallback
+            unassigned_pool.sort(key=lambda x: cat_priority.get(x["category"], 4))
+            fallback_person = unassigned_pool[0]
+            allocated_roster[task_name].append(fallback_person)
+
+    # Determine unassigned available staff properly
     assigned_staff_flat = [m for mems in allocated_roster.values() for m in mems]
     unassigned_staff = [p for p in available_pool if p not in assigned_staff_flat]
-
-    if unassigned_staff:
-        for task_name, req_count in task_requirements.items():
-            while len(allocated_roster[task_name]) < req_count and unassigned_staff:
-                leftover_person = unassigned_staff.pop(0)
-                allocated_roster[task_name].append(leftover_person)
 
     # --- DISPLAY RESULTS & TWO COPY-PASTE LISTS ---
     st.subheader(f"📊 Labor Allocation Plan (Total Requested: {total_requested} Staff)")
@@ -421,11 +429,17 @@ with tab_planner:
     with col1:
         st.markdown("### 📋 Live Roster Breakdown")
         for task, members in allocated_roster.items():
-            st.markdown(f"**{task} ({len(members)} / {task_requirements[task]})**")
+            req_c = task_requirements[task]
+            st.markdown(f"**{task} ({len(members)} / {req_c})**")
             for m in members:
                 t_note = m.get('task_performance', {}).get(task, {}).get('notes', '')
                 note_str = f" (*{t_note}*)" if t_note else ""
-                st.write(f"- **{m['name']}** [{m['category']}]{note_str}")
+                
+                # Check if person has skill for badge/indicator
+                has_skill = task in m.get("skills", [])
+                skill_badge = "" if has_skill else " ⚠️ *(Assigned as fallback)*"
+                
+                st.write(f"- **{m['name']}** [{m['category']}]{note_str}{skill_badge}")
             st.markdown("---")
 
     with col2:
@@ -437,7 +451,7 @@ with tab_planner:
         task_text_output += "-----------------------------------\n\n"
         
         for task, members in allocated_roster.items():
-            task_text_output += f"*{task.upper()} ({len(members)})*\n"
+            task_text_output += f"*{task.upper()} ({len(members)}/{task_requirements[task]})*\n"
             for idx, m in enumerate(members, 1):
                 t_note = m.get('task_performance', {}).get(task, {}).get('notes', '')
                 note = f" - {t_note}" if t_note else ""
