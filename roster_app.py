@@ -111,7 +111,7 @@ if "task_targets" not in st.session_state:
       "Others": 100.0,
   }
 
-# Default Staff Data with updated skills for Marie, Kid, Ting, Moka, Lin, Rosyfa
+# Default Staff Data
 DEFAULT_STAFF_DB = [
     {
         "name": "Marie",
@@ -511,13 +511,15 @@ if "active_tasks" not in st.session_state:
       "Truss Pruning": 3,
   }
 
-# Initialize Calculator Session State Defaults
+# Calculator Session State Defaults
+if "calc_area_ha" not in st.session_state:
+  st.session_state.calc_area_ha = 5.0
 if "calc_rows" not in st.session_state:
   st.session_state.calc_rows = 260
 if "calc_plants_per_row" not in st.session_state:
   st.session_state.calc_plants_per_row = 480
 if "calc_density_m2" not in st.session_state:
-  st.session_state.calc_density_m2 = 2.5
+  st.session_state.calc_density_m2 = 2.49
 
 
 def update_from_row_or_plants():
@@ -1190,9 +1192,10 @@ with tab_calc:
   with c_in3:
     plant_density_m2 = st.number_input(
         "Plant Density per m² (Editable)",
-        min_value=0.1,
+        min_value=0.01,
         value=float(st.session_state.calc_density_m2),
-        step=0.1,
+        step=0.05,
+        format="%.2f",
         key="calc_density_m2",
         on_change=update_from_density_m2,
     )
