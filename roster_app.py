@@ -691,13 +691,6 @@ DEFAULT_STAFF_DB = [
     },
 ]
 
-LEGACY_NOTES_TO_REMOVE = [
-    "Must work",
-    "Min 30h",
-    "Supervising",
-    "Sulphur Pots",
-]
-
 
 def load_and_sanitize_staff_data():
   data = DEFAULT_STAFF_DB
@@ -918,7 +911,7 @@ extra_available_staff = [
 ]
 
 
-# --- 7 TABS ---
+# --- 8 TABS (Added Performance Tab) ---
 (
     tab_copy_lists,
     tab_planner,
@@ -926,6 +919,7 @@ extra_available_staff = [
     tab_old_calc,
     tab_kpi,
     tab_progress,
+    tab_performance,
     tab_row_tracker,
 ) = st.tabs([
     "📱 Copy Lists",
@@ -933,7 +927,8 @@ extra_available_staff = [
     "📊 Smart Headcount & Shift Hours",
     "🧮 Workload & Status",
     "⭐ Weekly KPI Tracker",
-    "📈 Staff Progress & Trends",
+    "📈 Staff Progress",
+    "📊 Performance",
     "📌 Row Progress",
 ])
 
@@ -1668,7 +1663,6 @@ with tab_old_calc:
       kpi_display = f"KPI Rate: {kpi_val:,.1f} plants/worker/day"
       dur_avg = task_mh / staff_qty if staff_qty > 0 else 0
 
-      # Compare against standard maximum allowed hours without arbitrary deductions
       limit_ref = max_allowed_hours
 
       if dur_avg > limit_ref:
@@ -1825,10 +1819,10 @@ with tab_kpi:
 
 
 # ==========================================
-# TAB 6: STAFF PROGRESS & HISTORICAL TRENDS
+# TAB 6: STAFF PROGRESS & SKILLS VIEW
 # ==========================================
 with tab_progress:
-  st.subheader("📈 Staff Skills & Historical KPI Trends")
+  st.subheader("📈 Staff Skills & Performance Records")
   search_query = st.text_input("🔍 Search staff:", key="staff_search_progress")
 
   for person in st.session_state.staff_db:
@@ -1842,8 +1836,7 @@ with tab_progress:
           for idx, sk in enumerate(person.get("skills", [])):
             st.markdown(f"- {sk}")
         with col_p2:
-          st.markdown("##### 📊 Current KPI & Historical Trends")
-          chart_data = {}
+          st.markdown("##### 📊 Current KPI Ratings")
           for t_name, metrics in person.get("task_performance", {}).items():
             current_kpi = metrics.get("kpi", 100)
             current_qual = metrics.get("quality", "👍")
@@ -1853,8 +1846,6 @@ with tab_progress:
             )
 
             history = metrics.get("history", [])
-            chart_data[t_name] = current_kpi
-
             if history:
               history_str = ", ".join([
                   f"{h['date']}: {h['kpi']} ({h['quality']})" for h in history
@@ -1870,46 +1861,78 @@ with tab_progress:
                   " yet</small>"
               )
 
-          if chart_data:
-            st.markdown(
-                "<small style='color:#2D6A4F; font-weight:600;'>KPI Bar"
-                " Summary:</small>",
-                unsafe_allow_html=True,
-            )
-            st.bar_chart(chart_data)
+
+# ==========================================
+# TAB 7: PERFORMANCE (TASK-CENTRIC KPI CHARTS)
+# ==========================================
+with tab_performance:
+  st.subheader("📊 Task-Centric Performance Charts")
+  st.markdown(
+      "Select a task to view the KPI performance of all staff trained in that"
+      " specific task."
+  )
+
+  perf_tasks_list = [
+      t for t in st.session_state.skills_list if t != "Leading Hand"
+  ]
+  selected_chart_task = st.selectbox(
+      "Select Task for Chart:",
+      options=perf_tasks_list,
+      key="perf_task_chart_select",
+  )
+
+  task_chart_data = {}
+  for person in st.session_state.staff_db:
+    t_perf = person.get("task_performance", {})
+    if selected_chart_task in t_perf:
+      task_chart_data[person["name"]] = t_perf[selected_chart_task].get(
+          "kpi", 100.0
+      )
+
+  if task_chart_data:
+    st.markdown(
+        f"##### 📈 Staff KPIs for **{selected_chart_task}**"
+    )
+    st.bar_chart(task_chart_data)
+  else:
+    st.warning(f"No staff records found for {selected_chart_task}.")
 
 
 # ==========================================
-# TAB 7: TASK-SPECIFIC ROW PROGRESS TRACKER
+# TAB 8: TASK-SPECIFIC ROW PROGRESS TRACKER
 # ==========================================
 with tab_row_tracker:
   st.subheader("📌 Task-Specific Greenhouse Row Progress Tracker")
   st.markdown(
-      "Track completed rows independently per task, along with estimated"
-      " remaining work hours based on remaining rows."
+      "Track completed rows independently per task (excluding management and"
+      " support tasks), along with accurate remaining work hours."
   )
 
-  active_tasks_list = list(st.session_state.active_tasks.keys())
-  for t_name in active_tasks_list:
+  # Filter out Leading Hand and Others from row progress tracking
+  row_progress_tasks = [
+      t
+      for t in st.session_state.active_tasks.keys()
+      if t not in ["Leading Hand", "Others"]
+  ]
+
+  for t_name in row_progress_tasks:
     if t_name not in st.session_state.task_row_progress:
       st.session_state.task_row_progress[t_name] = 0
 
-  for task_name in active_tasks_list:
+  for task_name in row_progress_tasks:
     current_task_completed = st.session_state.task_row_progress.get(
         task_name, 0
     )
 
     # Calculate total man-hours required for this task based on current KPI
-    if task_name in ["Leading Hand", "Others"]:
-      task_total_mh = float(st.session_state.active_tasks.get(task_name, 2)) * 36.75
-    else:
-      kpi_val = float(
-          st.session_state.saved_avg_kpis.get(
-              task_name, st.session_state.task_targets.get(task_name, 600.0)
-          )
-      )
-      task_total_mh = total_gh_plants / kpi_val if kpi_val > 0 else 0.0
+    kpi_val = float(
+        st.session_state.saved_avg_kpis.get(
+            task_name, st.session_state.task_targets.get(task_name, 600.0)
+        )
+    )
+    task_total_mh = total_gh_plants / kpi_val if kpi_val > 0 else 0.0
 
+    # Fixed proper remaining rows calculation (260 - completed)
     remaining_rows_count = 260 - current_task_completed
     remaining_work_hours = (remaining_rows_count / 260.0) * task_total_mh
 
